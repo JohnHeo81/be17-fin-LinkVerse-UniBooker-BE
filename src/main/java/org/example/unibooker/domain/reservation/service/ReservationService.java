@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
@@ -33,6 +34,8 @@ public class ReservationService {
     // service
     private final CustomFieldValueService customFieldValueService;
     private final NotificationService notificationService;
+    private final HoldService holdService;
+    private final HoldWebSocketService holdWebSocketService;
 
     //repository
     private final ReservationRepository reservationRepository;
@@ -79,14 +82,28 @@ public class ReservationService {
 
     /** 정원 초과 체크 (리소스 입장) */
     public void overCapacityCheck(Resources resource, LocalDateTime[] dates, ReservationDto.Request dto) {
-        if(resource.getResourceGroup().getCategory().equals(ServiceCategory.SEAT)) { // 요일 별 설정 수용인원 만큼 해당 시간대에 수용 가능
+        if(resource.getResourceGroup().getCategory().equals(ServiceCategory.SEAT)) {
             Integer currentCount = reservationRepository.countBySeatReservation(resource.getId(), dates[0], dates[1], dto.getRow(), dto.getCol()).size();
-            if (currentCount+dto.getHeadCount() >= resource.getCapacity() || dto.getHeadCount() > 1) {
+
+            // 해당 좌석이 이미 예약된 경우
+            if (currentCount > 0) {
+                throw new BaseException(BaseResponseStatus.SEAT_ALREADY_BOOKED);
+            }
+
+            // 좌석은 1명만 예약 가능
+            if (dto.getHeadCount() > 1) {
                 throw new BaseException(BaseResponseStatus.RESOURCE_OVER_CAPACITY);
             }
         } else if(resource.getResourceGroup().getCategory().equals(ServiceCategory.RESERVATION)) { // 시간대별 한 타임 예약 가능
             Integer currentCount = reservationRepository.countByReservation(resource.getId(), dates[0], dates[1]).size();
-            if (currentCount > 0 || dto.getHeadCount() >  resource.getCapacity()) {
+
+            // 해당 시간대에 이미 예약이 있는 경우
+            if (currentCount > 0) {
+                throw new BaseException(BaseResponseStatus.RESERVATION_TIME_ALREADY_BOOKED);
+            }
+
+            // 예약 인원이 수용 인원을 초과하는 경우
+            if (dto.getHeadCount() > resource.getCapacity()) {
                 throw new BaseException(BaseResponseStatus.RESOURCE_OVER_CAPACITY);
             }
         } else if(resource.getResourceGroup().getCategory().equals(ServiceCategory.EVENT)) { // 수용인원 만큼 수용 가능
@@ -128,6 +145,25 @@ public class ReservationService {
                 NotificationType.RESERVATION_CONFIRMED,
                 user,
                 resource.getName()
+        );
+
+        // 예약 성공 시 Hold 삭제
+        holdService.clearHoldOnReservation(
+                resourceId,
+                resource.getResourceGroup().getCategory(),
+                dto.getDate(),
+                dto.getTime(),
+                dto.getRow(),
+                dto.getCol()
+        );
+
+        // WebSocket 브로드캐스트 (예약 완료)
+        holdWebSocketService.broadcastReservationCompleted(
+                resourceId,
+                dto.getDate() != null ? dto.getDate().toString() : null,
+                dto.getTime() != null ? dto.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) : null,
+                dto.getRow(),
+                dto.getCol()
         );
 
         // 카테고리 별 알맞은 형식으로 응답

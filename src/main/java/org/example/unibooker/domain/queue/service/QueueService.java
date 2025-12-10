@@ -3,10 +3,12 @@ package org.example.unibooker.domain.queue.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.domain.queue.model.dto.QueueDto;
+import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 public class QueueService {
 
     private final RedisTemplate<String, String> redisTemplate;
+
+    private final ResourceRepository resourceRepository;
 
     /** 대기열 키 접두사 */
     private static final String QUEUE_KEY_PREFIX = "queue:resource:";
@@ -40,6 +44,12 @@ public class QueueService {
 
     /** 예상 처리 시간 (초/명) */
     private static final long ESTIMATED_TIME_PER_USER = 30;
+
+    /** 타입별 최대 슬롯 수 */
+    private static final int SLOTS_RESERVATION = 5;
+    private static final int SLOTS_SEAT = 10;
+    private static final int SLOTS_EVENT = 10;
+    private static final int SLOTS_DEFAULT = 5;
 
     /**
      * 대기열 진입
@@ -134,8 +144,17 @@ public class QueueService {
         Long totalWaiting = redisTemplate.opsForZSet().size(queueKey);
         Long etaSeconds = position * ESTIMATED_TIME_PER_USER;
 
-        // 입장 가능 여부 (1번이면 입장 가능)
-        boolean canEnter = (position == 0);
+        // 타입별 슬롯 수 계산
+        ServiceCategory category = getResourceCategory(resourceId);
+        int maxSlots = getMaxSlots(category);
+        long activeEnterTokens = countActiveEnterTokens(resourceId);
+        long availableSlots = maxSlots - activeEnterTokens;
+
+// 입장 가능 여부 (순번이 빈 슬롯 수보다 작으면 입장 가능)
+        boolean canEnter = (position < availableSlots);
+
+        log.debug("[Queue] 슬롯 현황 - maxSlots: {}, active: {}, available: {}, position: {}, canEnter: {}",
+                maxSlots, activeEnterTokens, availableSlots, position, canEnter);
 
         log.debug("[Queue] 상태 조회 - token: {}, position: {}, canEnter: {}",
                 token, position + 1, canEnter);
@@ -223,5 +242,50 @@ public class QueueService {
     public boolean isValidEnterToken(String token) {
         String enterTokenKey = ENTER_TOKEN_PREFIX + token;
         return redisTemplate.hasKey(enterTokenKey);
+    }
+
+    /**
+     * 리소스 카테고리 조회
+     */
+    private ServiceCategory getResourceCategory(Long resourceId) {
+        return resourceRepository.findById(resourceId)
+                .map(resource -> resource.getResourceGroup().getCategory())
+                .orElse(null);
+    }
+
+    /**
+     * 타입별 최대 슬롯 수 반환
+     */
+    private int getMaxSlots(ServiceCategory category) {
+        if (category == null) return SLOTS_DEFAULT;
+
+        return switch (category) {
+            case RESERVATION -> SLOTS_RESERVATION;
+            case SEAT -> SLOTS_SEAT;
+            case EVENT -> SLOTS_EVENT;
+            default -> SLOTS_DEFAULT;
+        };
+    }
+
+    /**
+     * 현재 활성 입장 토큰 수 카운팅
+     */
+    private long countActiveEnterTokens(Long resourceId) {
+        String pattern = ENTER_TOKEN_PREFIX + "*";
+        Set<String> keys = redisTemplate.keys(pattern);
+
+        if (keys == null || keys.isEmpty()) {
+            return 0;
+        }
+
+        long count = 0;
+        for (String key : keys) {
+            String value = redisTemplate.opsForValue().get(key);
+            if (value != null && value.endsWith(":" + resourceId)) {
+                count++;
+            }
+        }
+
+        return count;
     }
 }
