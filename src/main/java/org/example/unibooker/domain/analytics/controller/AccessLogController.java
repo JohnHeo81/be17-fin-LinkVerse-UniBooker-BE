@@ -3,12 +3,12 @@ package org.example.unibooker.domain.analytics.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.domain.analytics.model.AccessLogDto;
+import org.example.unibooker.domain.analytics.model.dto.AccessLogDto;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "AccessLog", description = "리소스 접근 로그 API - 사용자의 리소스 또는 리소스 그룹 접근 이력 관리")
+@Tag(name = "AccessLog API", description = "리소스 접근 로그 API - 사용자의 리소스 또는 리소스 그룹 접근 이력 관리")
 @RestController
 @RequestMapping("/api/access-log")
 public class AccessLogController {

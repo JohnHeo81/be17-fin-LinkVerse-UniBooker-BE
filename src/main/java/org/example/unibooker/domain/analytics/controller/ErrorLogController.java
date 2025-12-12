@@ -3,12 +3,12 @@ package org.example.unibooker.domain.analytics.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.domain.analytics.model.ErrorLogDto;
+import org.example.unibooker.domain.analytics.model.dto.ErrorLogDto;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "Error Log", description = "서버 에러 로그 API - 플랫폼 관리자용")
+@Tag(name = "ErrorLog API", description = "서버 에러 로그 API - 플랫폼 관리자용")
 @RestController
 @RequestMapping("/api/analytics/error-log")
 public class ErrorLogController {

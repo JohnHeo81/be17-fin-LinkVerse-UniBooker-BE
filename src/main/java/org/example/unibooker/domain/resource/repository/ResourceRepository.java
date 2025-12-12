@@ -1,9 +1,8 @@
 package org.example.unibooker.domain.resource.repository;
 
 import jakarta.persistence.LockModeType;
-import org.example.unibooker.domain.resource.model.ResourceStatus;
-import org.example.unibooker.domain.resource.model.Resources;
-import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.model.entity.Resources;
+import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;

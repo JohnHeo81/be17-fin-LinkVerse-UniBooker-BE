@@ -1,7 +1,7 @@
 package org.example.unibooker.batch.reader;
 
 import lombok.RequiredArgsConstructor;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.springframework.batch.item.ItemReader;
 import org.springframework.stereotype.Component;

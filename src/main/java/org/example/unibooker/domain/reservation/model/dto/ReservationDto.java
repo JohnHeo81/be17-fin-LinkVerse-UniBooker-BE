@@ -1,21 +1,25 @@
 package org.example.unibooker.domain.reservation.model.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.reservation.model.entity.ReservationStatus;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
-import org.example.unibooker.domain.resource.model.CustomFieldDto;
-import org.example.unibooker.domain.resource.model.Resources;
-import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
+import org.example.unibooker.domain.resource.model.entity.Resources;
+import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.example.unibooker.domain.user.model.entity.Users;
 
 import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Schema(description = "예약 관련 DTO")
 public class ReservationDto {
 
     // ===================
@@ -23,30 +27,36 @@ public class ReservationDto {
     // ===================
     @Getter
     @Builder
-    @Schema(description = "예약시 필요 요청 정보")
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "예약 요청 정보")
     public static class Request {
+
+        @NotNull(message = "예약 날짜는 필수입니다.")
         @Schema(description = "예약할 날짜", example = "2025-10-16")
         private LocalDate date;
 
+        @NotNull(message = "예약 시간은 필수입니다.")
         @Schema(description = "예약할 시간", example = "10:00")
         private LocalTime time;
 
+        @Positive(message = "인원수는 1명 이상이어야 합니다.")
         @Schema(description = "인원수", example = "3")
         private Integer headCount;
 
-        @Schema(description = "좌석 행", example = "1")
+        @Min(value = 1, message = "좌석 행은 1 이상이어야 합니다.")
+        @Schema(description = "좌석 행 (좌석형만)", example = "1")
         private Integer row;
 
-        @Schema(description = "좌석 열", example = "2")
+        @Min(value = 1, message = "좌석 열은 1 이상이어야 합니다.")
+        @Schema(description = "좌석 열 (좌석형만)", example = "2")
         private Integer col;
 
-        @Schema(description = "리소스에 등록되어 있는 사용자 입력 커스텀 필드 값")
+        @Schema(description = "사용자 입력 커스텀 필드 값")
         private List<CustomFieldDto.CustomFieldValue> customFieldValues;
 
-        /** dto -> entity 변환 함수 */
+        /** DTO → Entity 변환 */
         public Reservations toReservationEntity(Users user, Resources resource, LocalDateTime[] dates) {
-
-            // 예약 Entity 반환
             return Reservations.builder()
                     .users(user)
                     .resources(resource)
@@ -69,24 +79,26 @@ public class ReservationDto {
     // =============== 플랫폼 관리자 및 기업 관리자 용 ===============
     @Getter
     @Builder
-    @Schema(description = "관리자 예약 목록 조회 응답 정보")
+    @Schema(description = "관리자 예약 목록 조회 응답")
     public static class ResponseList {
+
+        @Schema(description = "예약 목록")
         private List<Object> list;
 
         public static ResponseList from(List<Reservations> entities, ServiceCategory serviceCategory) {
             return switch(serviceCategory) {
                 case RESERVATION ->
                         ResponseList.builder()
-                        .list(entities.stream().map(ReservationResponseListInfo::from).collect(Collectors.toList()))
-                        .build();
+                                .list(entities.stream().map(ReservationResponseListInfo::from).collect(Collectors.toList()))
+                                .build();
                 case SEAT ->
                         ResponseList.builder()
-                        .list(entities.stream().map(SeatResponseListInfo::from).collect(Collectors.toList()))
-                        .build();
+                                .list(entities.stream().map(SeatResponseListInfo::from).collect(Collectors.toList()))
+                                .build();
                 case EVENT ->
                         ResponseList.builder()
-                        .list(entities.stream().map(EventResponseListInfo::from).collect(Collectors.toList()))
-                        .build();
+                                .list(entities.stream().map(EventResponseListInfo::from).collect(Collectors.toList()))
+                                .build();
                 default -> throw new BaseException(BaseResponseStatus.INVALID_SERVICE_CATEGORY);
             };
         }
@@ -94,25 +106,25 @@ public class ReservationDto {
 
     @Getter
     @Builder
-    @Schema(description = "관리자 예약 목록 조회 [예약형] 단일 응답 정보")
+    @Schema(description = "관리자 예약 목록 조회 [예약형] 단일 응답")
     public static class ReservationResponseListInfo {
 
-        @Schema(description = "예약 번호")
+        @Schema(description = "예약 번호", example = "1")
         private Long id;
 
-        @Schema(description = "예약자")
+        @Schema(description = "예약자", example = "홍길동")
         private String userName;
 
-        @Schema(description = "예약한 리소스")
+        @Schema(description = "예약한 리소스", example = "회의실 A")
         private String resourceName;
 
-        @Schema(description = "예약 상태", example = "CONFIRMED 및 CANCELED")
+        @Schema(description = "예약 상태", example = "CONFIRMED")
         private ReservationStatus status;
 
-        @Schema(description = "예약 시작 일시")
+        @Schema(description = "예약 시작 일시", example = "2025-10-16T10:00:00")
         private LocalDateTime startDate;
 
-        @Schema(description = "예약 종료 일시")
+        @Schema(description = "예약 종료 일시", example = "2025-10-16T11:00:00")
         private LocalDateTime endDate;
 
         public static ReservationResponseListInfo from(Reservations entity) {
@@ -129,30 +141,29 @@ public class ReservationDto {
 
     @Getter
     @Builder
-    @Schema(description = "관리자 예약 목록 조회 [좌석형] 단일 응답 정보")
+    @Schema(description = "관리자 예약 목록 조회 [좌석형] 단일 응답")
     public static class SeatResponseListInfo {
 
-        @Schema(description = "예약 번호")
+        @Schema(description = "예약 번호", example = "1")
         private Long id;
 
-        @Schema(description = "예약자")
+        @Schema(description = "예약자", example = "홍길동")
         private String userName;
 
-        @Schema(description = "좌석 행")
+        @Schema(description = "좌석 행", example = "3")
         private Integer row;
 
-        @Schema(description = "좌석 열")
+        @Schema(description = "좌석 열", example = "5")
         private Integer col;
 
-        @Schema(description = "예약 상태", example = "CONFIRMED 및 CANCELED")
+        @Schema(description = "예약 상태", example = "CONFIRMED")
         private ReservationStatus status;
 
-        @Schema(description = "예약 시작 일시")
+        @Schema(description = "예약 시작 일시", example = "2025-10-16T10:00:00")
         private LocalDateTime startDate;
 
-        @Schema(description = "예약 종료 일시")
+        @Schema(description = "예약 종료 일시", example = "2025-10-16T11:00:00")
         private LocalDateTime endDate;
-
 
         public static SeatResponseListInfo from(Reservations entity) {
             return SeatResponseListInfo.builder()
@@ -169,22 +180,22 @@ public class ReservationDto {
 
     @Getter
     @Builder
-    @Schema(description = "관리자 예약 목록 조회 [신청형] 단일 응답 정보")
+    @Schema(description = "관리자 예약 목록 조회 [신청형] 단일 응답")
     public static class EventResponseListInfo {
 
-        @Schema(description = "예약 번호")
+        @Schema(description = "예약 번호", example = "1")
         private Long id;
 
-        @Schema(description = "예약자")
+        @Schema(description = "예약자", example = "홍길동")
         private String userName;
 
-        @Schema(description = "이메일")
+        @Schema(description = "이메일", example = "user@example.com")
         private String email;
 
-        @Schema(description = "신청일")
+        @Schema(description = "신청일", example = "2025-10-16T10:00:00")
         private LocalDateTime applicationDate;
 
-        @Schema(description = "신청 상태")
+        @Schema(description = "신청 상태", example = "CONFIRMED")
         private ReservationStatus status;
 
         public static EventResponseListInfo from(Reservations entity) {
@@ -201,9 +212,11 @@ public class ReservationDto {
     // =============== 일반 사용자용 ===============
     @Getter
     @Builder
-    @Schema(description = "일반 사용자 예약 목록 조회 응답 정보")
+    @Schema(description = "일반 사용자 예약 목록 조회 응답")
     public static class UserResponseList {
-        List<UserResponse> reservations;
+
+        @Schema(description = "예약 목록")
+        private List<UserResponse> reservations;
 
         public static UserResponseList from(List<Reservations> entities) {
             return UserResponseList.builder()
@@ -247,56 +260,58 @@ public class ReservationDto {
     // ===================
     @Getter
     @SuperBuilder
-    @Schema(description = "예약 상세 조회 [공통] 응답 정보")
+    @Schema(description = "예약 상세 조회 [공통] 응답")
     public abstract static class Response {
+
         @Schema(description = "예약 번호", example = "1")
         private Long id;
 
-        @Schema(description = "예약자", example = "유현경")
+        @Schema(description = "예약자", example = "홍길동")
         private String userName;
 
-        @Schema(description = "예약 상태", example = "CONFIRMED 및 CANCELED")
+        @Schema(description = "예약 상태", example = "CONFIRMED")
         private ReservationStatus status;
 
-        @Schema(description = "예약한 리소스 그룹의 이미지")
+        @Schema(description = "리소스 그룹 썸네일", example = "https://example.com/thumbnail.jpg")
         private String thumbnail;
 
-        @Schema(description = "예약한 리소스의 리소스 그룹명", example = "회의실")
+        @Schema(description = "리소스 그룹명", example = "회의실")
         private String resourceGroupName;
 
-        @Schema(description = "예약한 리소스명", example = "회의실A")
+        @Schema(description = "리소스명", example = "회의실 A")
         private String resourceName;
 
-        @Schema(description = "예약한 리소스의 카테고리", example = "RESERVATION/SEAT/EVENT")
+        @Schema(description = "서비스 카테고리", example = "RESERVATION")
         private ServiceCategory serviceCategory;
 
-        @Schema(description = "생성일시")
+        @Schema(description = "생성일시", example = "2025-10-16T10:00:00")
         private LocalDateTime createdAt;
 
-        @Schema(description = "수정일시")
+        @Schema(description = "수정일시", example = "2025-10-16T11:00:00")
         private LocalDateTime updatedAt;
 
-        @Schema(description = "삭제일시")
+        @Schema(description = "삭제일시", example = "null")
         private LocalDateTime deletedAt;
     }
 
     @Getter
     @SuperBuilder
-    @Schema(description = "예약 상세 조회 [예약형] 응답 정보")
+    @Schema(description = "예약 상세 조회 [예약형] 응답")
     public static class ReservationResponse extends Response {
+
         @Schema(description = "예약 시작 일시", example = "2025-10-16T10:00:00")
         private LocalDateTime startDate;
 
         @Schema(description = "예약 종료 일시", example = "2025-10-16T11:00:00")
         private LocalDateTime endDate;
 
-        @Schema(description = "인원수")
+        @Schema(description = "인원수", example = "4")
         private Integer headCount;
 
-        @Schema(description = "예약할 때 작성한 사용자 입력 커스텀 필드 값")
+        @Schema(description = "사용자 입력 커스텀 필드 값")
         private List<CustomFieldDto.CustomFieldValueListRes> customFieldValues;
 
-        /** entity -> dto 로 변환 */
+        /** Entity → DTO 변환 */
         public static ReservationResponse from(Reservations entity, List<CustomFieldDto.CustomFieldValueListRes> userCustomFieldValues) {
             return ReservationResponse.builder()
                     .id(entity.getId())
@@ -320,24 +335,25 @@ public class ReservationDto {
 
     @Getter
     @SuperBuilder
-    @Schema(description = "예약 상세 조회 [좌석형] 응답 정보")
+    @Schema(description = "예약 상세 조회 [좌석형] 응답")
     public static class SeatResponse extends Response {
+
         @Schema(description = "예약 시작 일시", example = "2025-10-16T10:00:00")
         private LocalDateTime startDate;
 
         @Schema(description = "예약 종료 일시", example = "2025-10-16T11:00:00")
         private LocalDateTime endDate;
 
-        @Schema(description = "인원수")
+        @Schema(description = "인원수", example = "1")
         private Integer headCount;
 
-        @Schema(description = "좌석 행")
+        @Schema(description = "좌석 행", example = "3")
         private Integer row;
 
-        @Schema(description = "좌석 열")
+        @Schema(description = "좌석 열", example = "5")
         private Integer col;
 
-        @Schema(description = "예약할 때 작성한 사용자 입력 커스텀 필드 값")
+        @Schema(description = "사용자 입력 커스텀 필드 값")
         private List<CustomFieldDto.CustomFieldValueListRes> customFieldValues;
 
         public static SeatResponse from(Reservations entity, List<CustomFieldDto.CustomFieldValueListRes> userCustomFieldValues) {
@@ -365,10 +381,10 @@ public class ReservationDto {
 
     @Getter
     @SuperBuilder
-    @Schema(description = "예약 상세 조회 [신청형] 응답 정보")
-    public static class EventResponse extends Response{
+    @Schema(description = "예약 상세 조회 [신청형] 응답")
+    public static class EventResponse extends Response {
 
-        @Schema(description = "예약할 때 작성한 사용자 입력 커스텀 필드 값")
+        @Schema(description = "사용자 입력 커스텀 필드 값")
         private List<CustomFieldDto.CustomFieldValueListRes> customFieldValues;
 
         public static EventResponse from(Reservations entity, List<CustomFieldDto.CustomFieldValueListRes> userCustomFieldValues) {

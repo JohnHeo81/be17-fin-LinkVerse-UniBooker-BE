@@ -3,7 +3,7 @@ package org.example.unibooker.domain.queue.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.domain.queue.model.dto.QueueDto;
-import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;

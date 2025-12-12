@@ -3,7 +3,7 @@ package org.example.unibooker.domain.reservation.model.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.unibooker.common.BaseEntity;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.user.model.entity.Users;
 
 import java.time.LocalDateTime;

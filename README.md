@@ -34,11 +34,8 @@
 수강신청, 티켓팅, 병원 예약, 행정 서비스 등에서는 수천 명이 동시에 접속하는 상황이 반복되지만 이러한 트래픽을 감당하지 못해 아래와 같은 문제가 발생하고 있습니다.
 
 * 동시 접속 폭주로 인한 응답 지연, 서버 다운, 중복 예약
-
 * 잔여석·취소·성공 여부를 실시간으로 확인하기 어려움
-
 * 기업별로 시스템을 따로 구축해야 하므로 비용·운영 인력 부담 증가
-
 * 특정 산업에 맞춘 폐쇄적 구조로 범용성이 부족
 
 이는 운영 효율 저하, 공정성 문제, 민원 증가 등으로 이어질 수 있습니다.
@@ -51,133 +48,174 @@
 대규모 예약 신청을 안정적으로 처리할 수 있는 B2B 클라우드 예약 관리 서비스를 목표로 하였습니다.
 
 #### 1) 대규모 트래픽 대응
-
-* 대기열 시스템으로 폭주 트래픽 제어
-
+* **Redis 기반 대기열 시스템**으로 폭주 트래픽 제어
+* **Hold(임시 점유) 시스템**으로 중복 선택 방지
 * Redis 분산 락으로 중복 예약 방지
 
-* MSA 구조로 특정 기능 장애가 전체 서비스에 영향을 주지 않도록 설계
-
-#### 2) 실시간 운영 대시보드 제공
-
-* 잔여석, 성과, 예약수, 취소수 현황을 실시간으로 모니터링
-
+#### 2) 실시간 동기화
+* **WebSocket(STOMP)** 기반 실시간 좌석/시간 상태 동기화
+* 잔여석, Hold 상태, 예약 완료를 실시간으로 브로드캐스트
 * 운영자가 즉각적으로 문제를 파악하고 대응 가능
 
-####  3) 다양한 산업에서 즉시 사용 가능
-
-* 시설·공간·이벤트 등 다양한 리소스를 기업이 직접 등록
-
-* 정원·시간대·예약 규칙을 관리자가 직접 설정할 수 있는 유연한 구조
+#### 3) 다양한 예약 유형 지원
+* **RESERVATION**: 시간대 단위 예약 (회의실, 스터디룸 등)
+* **SEAT**: 좌석 단위 예약 (영화관, 공연장, 강의실 등)
+* **EVENT**: 이벤트/행사 신청
 
 #### 4) 시스템 구축/운영 부담 감소
-
 * 클라우드 SaaS 기반으로 별도 개발·서버 구축 필요 없음
-
+* 멀티테넌시 지원으로 기업별 독립 운영
 * 유지보수 비용 절감 및 운영 효율 향상
 
 <br/>
 
 
 ## 🌟 주요 기능
-### 🍀 리소스(예약 서비스) 관리
 
-* 시설 · 공간 · 장비 등 다양한 자원을 그룹별로 구조화하여 관리
-* 리소스별 운영 시간, 예약 가능 조건, 가격 정책 설정
-* 예약 가능한 리소스(시설·공간·이벤트 등)의 등록, 수정, 삭제
-* 리소스 그룹 단위 카테고리 관리 및 필터링
-* 리소스 그룹 및 리소스 통계 제공
-* 특정 날짜/시간에 예약을 막는 예외 시간대 설정
-* 반복 예외, 일회성 예외, 공휴일 적용 등 고급 설정 지원
+### 🍀 대기열 시스템
+* **Redis ZSet 기반** 선착순 대기열 구현
+* 실시간 대기 순번 및 예상 대기 시간 제공
+* 입장 토큰 발급 및 TTL 기반 자동 만료
+* WebSocket을 통한 실시간 대기 상태 알림
+
+### 🍀 Hold(임시 점유) 시스템
+* 시간/좌석 선택 시 **Redis TTL 기반 임시 점유**
+* 다른 사용자의 중복 선택 차단
+* **페이지 TTL과 동기화**되어 자동 해제
+* WebSocket 브로드캐스트로 실시간 Hold 상태 공유
 
 ### 🍀 예약 관리
-
-* 사용자 예약 생성 · 취소 기능
-* 관리자가 예약 현황을 한눈에 보는 관리자 대시보드 제공
-* 시간 단위/기간 단위 예약 지원
+* **RESERVATION**: 시간대 단위 예약 생성/취소
+* **SEAT**: 좌석 단위 예약 (행/열 좌표 기반)
+* **EVENT**: 이벤트 신청 (선착순/추첨)
 * 예약 겹침·동시성 제어로 안정적인 예약 처리
+* 예약 완료 시 Hold 자동 삭제 및 WebSocket 알림
 
-### 🍀 대기열 관리
+### 🍀 리소스(예약 서비스) 관리
+* 시설·공간·장비 등 다양한 자원을 그룹별로 구조화하여 관리
+* 리소스별 운영 시간, 예약 가능 조건 설정
+* 좌석형 리소스의 행/열 구성 설정
+* 특정 날짜/시간에 예약을 막는 예외 시간대 설정
 
-* 대규모 트래픽 상황에서도 안정적인 예약 요청 처리
-* 대기열 진입·종료 현황 및 우선순위 관리
+### 🍀 실시간 WebSocket 통신
+* **STOMP 프로토콜** 기반 양방향 통신
+* Hold 생성/해제/예약완료 이벤트 브로드캐스트
+* 리소스별 토픽 구독 (`/topic/hold/{resourceId}`)
+* 사용자별 알림 큐 (`/user/queue/notifications`)
 
-### 🍀 실시간 모니터링
-
-* 관리자 대시보드에서 예약 현황, 트래픽, SLA 실시간 확인
-* WebSocket 기반 알림 시스템 및 장애 감지
-* 서비스 가용성·응답 속도·처리율 시각화
-
-### 🍀 리소스 관리
-
-* 예약 가능한 자원(시설·공간·이벤트 등)의 등록, 수정, 삭제
-* 리소스 그룹 단위 카테고리 관리 및 필터링
-* 관리자별 접근 권한 설정 및 리소스 통계 제공
+### 🍀 멀티테넌시 지원
+* 기업별 독립 데이터 분리 (Company 기반)
+* 커스텀 도메인 Slug 지원 (`/c/{company-slug}/...`)
+* 기업별 관리자/매니저 권한 분리
 
 ### 🍀 통계 및 리포트
-
 * 누적 예약/취소 건수
 * 리소스 그룹별 예약 수 통계
 * 시간대별 이용량 조회
-  <br><br>
+
+<br><br>
 
 ## 🌐 접속 주소
 
-### [플랫폼 관리자 바로가기](https://www.unibooker.kro.kr/super/login)
-
+### [플랫폼 관리자 바로가기](https://www.unibooker.n-e.kr/super/login)
 - ID : super@unibooker.com
 - PW : super1234
 
-### [기업 관리자 바로가기](https://www.unibooker.kro.kr/admin/login)
+### [기업 관리자 바로가기](https://www.unibooker.n-e.kr/admin/login)
+- ID : admin@hanwha.com
+- PW : Admin1234!
 
-- ID : admin@unibooker.com
-- PW : Lqwer1234!
-
-### [고객 바로가기](https://www.unibooker.kro.kr/c/hanwha-systems)
-
-- ID : test111@test.com
-- PW : qwer1234!
-
+### [고객 바로가기](https://www.unibooker.n-e.kr/c/hanwha-systems)
+- ID : user.jeon@hanwha.com
+- PW : User1234!
 
 <br><br>
 
 ## 🧰 기술 스택
 
+### Backend
 <div>
-  <img src="https://img.shields.io/badge/vue.js-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white">
-  <img src="https://img.shields.io/badge/Pinia-FFE801?style=for-the-badge">
-  <img src="https://img.shields.io/badge/tailwindcss-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white">
-  <img src="https://img.shields.io/badge/nginx-009639?style=for-the-badge&logo=nginx&logoColor=white">
+  <img src="https://img.shields.io/badge/Java_17-007396?style=for-the-badge&logo=java&logoColor=white">
+  <img src="https://img.shields.io/badge/Spring_Boot_3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white">
+  <img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white">
+  <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white">
 </div>
+<div>
+  <img src="https://img.shields.io/badge/MariaDB-003545?style=for-the-badge&logo=mariadb&logoColor=white">
+  <img src="https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">
+  <img src="https://img.shields.io/badge/WebSocket-010101?style=for-the-badge&logo=socket.io&logoColor=white">
+  <img src="https://img.shields.io/badge/JPA-59666C?style=for-the-badge&logo=hibernate&logoColor=white">
+</div>
+
+### Infra
+<div>
+  <img src="https://img.shields.io/badge/AWS_EC2-FF9900?style=for-the-badge&logo=amazonec2&logoColor=white">
+  <img src="https://img.shields.io/badge/AWS_RDS-527FFF?style=for-the-badge&logo=amazonrds&logoColor=white">
+  <img src="https://img.shields.io/badge/Upstash_Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white">
+  <img src="https://img.shields.io/badge/Jenkins-D24939?style=for-the-badge&logo=jenkins&logoColor=white">
+</div>
+
+### Tools
 <div>
   <img src="https://img.shields.io/badge/git-F05032?style=for-the-badge&logo=git&logoColor=white">
   <img src="https://img.shields.io/badge/github-181717?style=for-the-badge&logo=github&logoColor=white">
-  <img src="https://img.shields.io/badge/figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white">
+  <img src="https://img.shields.io/badge/Swagger-85EA2D?style=for-the-badge&logo=swagger&logoColor=black">
   <img src="https://img.shields.io/badge/discord-5865F2?style=for-the-badge&logo=discord&logoColor=white">
 </div>
 <br><br>
 
-## 🏗️ 시스템 아키텍처 [🔗](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/wiki/3.-%EC%8B%9C%EC%8A%A4%ED%85%9C-%EC%95%84%ED%82%A4%ED%85%8D%EC%B2%98)
-### V1 ![3. 시스템아키텍처_v1](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/blob/develop/docs/3.%20시스템%20아키텍처_v1.png)
-<br/>
+## 🏗️ 시스템 아키텍처
+### V1
+![3. 시스템아키텍처_v1](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/blob/develop/docs/3.%20시스템%20아키텍처_v1.png)
 
-### V2 ![4. 시스템아키텍처_v2](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/blob/develop/docs/3.%20시스템%20아키텍처_v2.png)
-<br>
+### V2
+![4. 시스템아키텍처_v2](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/blob/develop/docs/3.%20시스템%20아키텍처_v2.png)
 
 <br><br>
 
-## 🛢️ ERD [🔗](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/wiki/5.-ERD)
+## 🛢️ ERD
 ![5. ERD](https://github.com/user-attachments/assets/0b21618e-43e3-4f0f-97cf-3f959b31c888)
 
 <br><br>
 
-## 🖥 Swagger [🔗](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/wiki/6.-Swagger-UI)
-> [Swagger-UI 링크로 이동하기](https://www.unibooker.kro.kr/webjars/swagger-ui/index.html)
+## 📡 API 명세
+
+### 대기열 API
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/queue/{resourceId}/join` | 대기열 참여 |
+| GET | `/api/queue/{resourceId}/status` | 대기 상태 조회 |
+| POST | `/api/queue/{resourceId}/consume` | 대기열 토큰 소비 |
+
+### Hold API
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/hold/{resourceId}` | Hold 생성 |
+| DELETE | `/api/hold/{resourceId}/release` | Hold 해제 |
+| GET | `/api/hold/{resourceId}/status` | Hold 상태 조회 |
+
+### 예약 API
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/reservations/{resourceId}` | 예약 생성 |
+| GET | `/api/reservations/{id}` | 예약 상세 조회 |
+| DELETE | `/api/reservations/{id}` | 예약 취소 |
+
+### WebSocket
+| Topic | Description |
+|-------|-------------|
+| `/topic/hold/{resourceId}` | Hold 상태 브로드캐스트 |
+| `/user/queue/notifications` | 개인 알림 |
+
+<br><br>
+
+## 🖥 Swagger
+> [Swagger-UI 바로가기](https://api.unibooker.n-e.kr/webjars/swagger-ui/index.html)
 
 <br><br>
 
 ## 📺 기능 테스트
-> 추후 추가 예정
+> [기능 테스트 보러가기](https://github.com/beyond-sw-camp/be17-fin-LinkVerse-UniBooker-BE/wiki/7.-%EA%B8%B0%EB%8A%A5-%ED%85%8C%EC%8A%A4%ED%8A%B8)
 
 <br><br>
 

@@ -6,7 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.notification.service.NotificationService;
-import org.example.unibooker.domain.resource.model.*;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
+import org.example.unibooker.domain.resource.model.dto.ResourceDto;
+import org.example.unibooker.domain.resource.model.dto.TimeSlotDto;
+import org.example.unibooker.domain.resource.model.entity.*;
 import org.example.unibooker.domain.resource.repository.*;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
@@ -14,11 +17,9 @@ import org.example.unibooker.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.annotation.Resource;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -353,7 +354,7 @@ public class ResourceService {
     }
 
     @Transactional
-    public boolean changeStatus(AuthDto.AuthenticatedUser authUser, ResourceDto.ResourceStatusChangReq req) {
+    public boolean changeStatus(AuthDto.AuthenticatedUser authUser, ResourceDto.ResourceStatusChangeReq req) {
         Resources resource = resourceRepository.findById(req.getResourceId())
                 .orElseThrow(() -> new BaseException(BaseResponseStatus.RESOURCE_NOT_FOUND));
         Users updatedBy = userRepository.findById(authUser.getId())

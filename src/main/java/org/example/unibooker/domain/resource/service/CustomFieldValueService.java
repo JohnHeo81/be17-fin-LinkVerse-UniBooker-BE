@@ -2,7 +2,11 @@ package org.example.unibooker.domain.resource.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.domain.reservation.repository.ReservationRepository;
-import org.example.unibooker.domain.resource.model.*;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
+import org.example.unibooker.domain.resource.model.entity.CustomFieldDefinitions;
+import org.example.unibooker.domain.resource.model.entity.CustomTargetType;
+import org.example.unibooker.domain.resource.model.entity.ResourceCustomFieldValues;
+import org.example.unibooker.domain.resource.model.entity.UserCustomFieldValues;
 import org.example.unibooker.domain.resource.repository.CustomFieldDefinitionRepository;
 import org.example.unibooker.domain.resource.repository.ResourceCustomFieldValueRepository;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;

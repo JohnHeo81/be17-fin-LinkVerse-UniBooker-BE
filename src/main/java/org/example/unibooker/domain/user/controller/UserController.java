@@ -59,6 +59,7 @@ public class UserController {
      * - 단일 세션 정책: 기존 모든 역할의 쿠키 삭제 후 새 쿠키 생성
      * - Access Token과 Refresh Token을 모두 HttpOnly Cookie에 저장
      */
+    @Operation(summary = "일반 사용자 로그인", description = "일반 사용자 계정으로 로그인합니다. JWT 토큰이 HttpOnly 쿠키로 설정됩니다.")
     @PostMapping("/login")
     public BaseResponse<UserDto.LoginResponse> login(
             @RequestBody @Valid UserDto.LoginRequest request,

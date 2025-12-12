@@ -15,7 +15,7 @@ import java.io.IOException;
 
 @Slf4j
 @RestController
-@Tag(name = "이미지 업로드", description = "AWS S3 기반 이미지 파일 업로드 기능을 제공합니다.")
+@Tag(name = "ImageUpload API", description = "AWS S3 기반 이미지 파일 업로드 기능을 제공합니다.")
 @RequestMapping("/api/image-upload")
 @RequiredArgsConstructor
 public class ImageUploadController {

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 
 
-@Tag(name = "예약 처리 기능", description = "예약 요청, 조회, 취소 등 예약 처리에 대한 전반적인 기능")
+@Tag(name = "Reservation API", description = "예약 요청, 조회, 취소 등 예약 처리에 대한 전반적인 기능")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/reservation")

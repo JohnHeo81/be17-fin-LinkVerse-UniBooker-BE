@@ -10,7 +10,8 @@ import org.example.unibooker.domain.reservation.model.dto.ReservationDto;
 import org.example.unibooker.domain.reservation.model.entity.ReservationStatus;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
 import org.example.unibooker.domain.reservation.repository.ReservationRepository;
-import org.example.unibooker.domain.resource.model.*;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
+import org.example.unibooker.domain.resource.model.entity.*;
 import org.example.unibooker.domain.resource.repository.ResourceGroupRepository;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.example.unibooker.domain.resource.service.CustomFieldValueService;
@@ -18,7 +19,6 @@ import org.example.unibooker.domain.user.model.UserRole;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;

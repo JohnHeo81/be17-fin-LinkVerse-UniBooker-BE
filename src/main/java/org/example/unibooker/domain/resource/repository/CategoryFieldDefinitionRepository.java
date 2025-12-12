@@ -1,7 +1,7 @@
 package org.example.unibooker.domain.resource.repository;
 
-import org.example.unibooker.domain.resource.model.CategoryFieldDefinitions;
-import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.model.entity.CategoryFieldDefinitions;
+import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,8 +1,7 @@
 package org.example.unibooker.domain.resource.repository;
 
-import org.example.unibooker.domain.resource.model.DayOfWeek;
-import org.example.unibooker.domain.resource.model.ResourceTimeSlots;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.DayOfWeek;
+import org.example.unibooker.domain.resource.model.entity.ResourceTimeSlots;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

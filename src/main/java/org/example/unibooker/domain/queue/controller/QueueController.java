@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  * 대기열 컨트롤러
  * - 대기열 진입, 상태 조회, 입장 처리
  */
-@Tag(name = "대기열", description = "예약 대기열 관리 API")
+@Tag(name = "Queue API", description = "예약 대기열 관리 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/queues")
@@ -26,6 +26,7 @@ public class QueueController {
     /**
      * 대기열 진입
      */
+    @Operation(summary = "대기열 진입", description = "예약 대기열에 진입하고 대기 토큰을 발급받습니다.")
     @PostMapping("/{resourceId}/join")
     public ResponseEntity<BaseResponse<QueueDto.JoinResponse>> joinQueue(
             @PathVariable Long resourceId,

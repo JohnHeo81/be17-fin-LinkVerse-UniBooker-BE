@@ -32,6 +32,7 @@ public class NotificationController {
 
 
     // -------------------- 알림 목록 조회 --------------------
+    @Operation(summary = "알림 목록 조회", description = "현재 로그인한 사용자의 알림 목록을 페이징하여 조회합니다.")
     @GetMapping
     public BaseResponse<Page<NotificationDto.NotificationRes>> getNotifications(@AuthenticationPrincipal AuthDto.AuthenticatedUser authUser,
                                                                                 @RequestParam(defaultValue = "0") int page,
@@ -43,6 +44,7 @@ public class NotificationController {
 
 
     // -------------------- 알림 읽음 처리 --------------------
+    @Operation(summary = "알림 읽음 처리", description = "특정 알림을 읽음 상태로 변경합니다.")
     @GetMapping("/read/{id}")
     public BaseResponse markAsRead(@AuthenticationPrincipal AuthDto.AuthenticatedUser authUser,
                                    @PathVariable("id") Long notificationId) {

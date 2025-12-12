@@ -2,9 +2,9 @@ package org.example.unibooker.query.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.domain.reservation.repository.ReservationRepository;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
-import org.example.unibooker.query.model.ResourceReservationDto;
+import org.example.unibooker.query.model.dto.ResourceReservationDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

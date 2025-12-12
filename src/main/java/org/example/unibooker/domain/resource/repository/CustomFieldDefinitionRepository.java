@@ -1,8 +1,8 @@
 package org.example.unibooker.domain.resource.repository;
 
-import org.example.unibooker.domain.resource.model.CustomFieldDefinitions;
-import org.example.unibooker.domain.resource.model.CustomTargetType;
-import org.example.unibooker.domain.resource.model.ResourceGroups;
+import org.example.unibooker.domain.resource.model.entity.CustomFieldDefinitions;
+import org.example.unibooker.domain.resource.model.entity.CustomTargetType;
+import org.example.unibooker.domain.resource.model.entity.ResourceGroups;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

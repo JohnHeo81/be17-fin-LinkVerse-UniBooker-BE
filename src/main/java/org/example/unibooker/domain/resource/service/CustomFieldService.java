@@ -1,11 +1,11 @@
 package org.example.unibooker.domain.resource.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.unibooker.domain.resource.model.*;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
+import org.example.unibooker.domain.resource.model.entity.*;
 import org.example.unibooker.domain.resource.repository.CustomFieldDefinitionRepository;
 import org.example.unibooker.domain.resource.repository.CustomFieldSelectRepository;
 import org.example.unibooker.domain.resource.repository.ResourceGroupRepository;
-import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

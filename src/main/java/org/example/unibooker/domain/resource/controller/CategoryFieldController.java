@@ -4,12 +4,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.domain.resource.model.CategoryFieldDto;
-import org.example.unibooker.domain.resource.model.ResourceGroupDto;
+import org.example.unibooker.domain.resource.model.dto.CategoryFieldDto;
 import org.example.unibooker.domain.resource.service.CategoryFieldService;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "카테고리별 필수 필드 관리", description = "예약/신청 서비스 그룹의 카테고리별로 가지는 필수 필드를 관리합니다.")
+@Tag(name = "CategoryField API", description = "예약/신청 서비스 그룹의 카테고리별로 가지는 필수 필드를 관리합니다.")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/category-field")

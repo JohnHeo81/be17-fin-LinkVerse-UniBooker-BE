@@ -4,14 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.domain.resource.model.CustomFieldDto;
-import org.example.unibooker.domain.resource.model.CustomTargetType;
+import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
 import org.example.unibooker.domain.resource.service.CustomFieldValueService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "커스텀 필드 값 관리", description = "커스텀 필드 값을 관리합니다.")
+@Tag(name = "CustomFieldValue API", description = "커스텀 필드 값을 관리합니다.")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/custom-field")

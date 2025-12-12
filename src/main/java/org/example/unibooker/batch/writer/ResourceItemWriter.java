@@ -2,13 +2,11 @@ package org.example.unibooker.batch.writer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 @Slf4j
 @Component

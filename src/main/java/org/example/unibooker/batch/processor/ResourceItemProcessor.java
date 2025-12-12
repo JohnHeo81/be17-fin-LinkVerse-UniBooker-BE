@@ -1,8 +1,8 @@
 package org.example.unibooker.batch.processor;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.unibooker.domain.resource.model.ResourceStatus;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.ResourceStatus;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 

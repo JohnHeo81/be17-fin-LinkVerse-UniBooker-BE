@@ -1,10 +1,10 @@
 package org.example.unibooker.domain.resource.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.unibooker.domain.resource.model.DayOfWeek;
-import org.example.unibooker.domain.resource.model.ResourceTimeSlotExceptions;
-import org.example.unibooker.domain.resource.model.ResourceTimeSlots;
-import org.example.unibooker.domain.resource.model.TimeSlotDto;
+import org.example.unibooker.domain.resource.model.entity.DayOfWeek;
+import org.example.unibooker.domain.resource.model.entity.ResourceTimeSlotExceptions;
+import org.example.unibooker.domain.resource.model.entity.ResourceTimeSlots;
+import org.example.unibooker.domain.resource.model.dto.TimeSlotDto;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.example.unibooker.domain.resource.repository.ResourceTimeSlotExceptionRepository;
 import org.example.unibooker.domain.resource.repository.ResourceTimeSlotRepository;

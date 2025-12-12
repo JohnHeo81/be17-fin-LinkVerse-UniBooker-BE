@@ -2,13 +2,10 @@ package org.example.unibooker.domain.reservation.repository;
 
 import jakarta.persistence.LockModeType;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
-import org.example.unibooker.domain.resource.model.Resources;
-import org.example.unibooker.domain.user.model.entity.Users;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;

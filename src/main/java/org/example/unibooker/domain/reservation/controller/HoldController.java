@@ -18,7 +18,7 @@ import java.time.LocalDate;
  * Hold(임시 점유) 컨트롤러
  * - 시간/좌석 선택 시 임시 점유 관리
  */
-@Tag(name = "Hold", description = "시간/좌석 임시 점유 API")
+@Tag(name = "Hold API", description = "시간/좌석 임시 점유 API")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/holds")

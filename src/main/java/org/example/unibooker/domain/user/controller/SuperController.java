@@ -32,7 +32,7 @@ import java.util.List;
  * - 슈퍼 관리자 로그인/로그아웃만 처리
  * - 실제 관리 기능은 AdminController의 /api/admins 엔드포인트 사용
  */
-@Tag(name = "Super Admin API", description = "슈퍼 관리자 로그인/로그아웃 API")
+@Tag(name = "Super API", description = "슈퍼 관리자 로그인/로그아웃 API")
 @RestController
 @RequestMapping("/api/super")
 @RequiredArgsConstructor

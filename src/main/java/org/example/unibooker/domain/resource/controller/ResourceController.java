@@ -6,16 +6,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponse;
 import org.example.unibooker.common.BaseResponseStatus;
-import org.example.unibooker.common.exception.BaseException;
-import org.example.unibooker.domain.resource.model.ResourceDto;
-import org.example.unibooker.domain.resource.model.ResourceGroupDto;
-import org.example.unibooker.domain.resource.model.ResourceGroups;
+import org.example.unibooker.domain.resource.model.dto.ResourceDto;
 import org.example.unibooker.domain.resource.service.ResourceService;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-@Tag(name = "리소스 관리", description = "리소스에 대한 값들을 관리합니다.")
+@Tag(name = "Resource API", description = "리소스에 대한 값들을 관리합니다.")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/resource")
@@ -95,7 +92,7 @@ public class ResourceController {
     @PatchMapping("/status")
     public BaseResponse changeResourceStatus(
             @AuthenticationPrincipal AuthDto.AuthenticatedUser authUser,
-            @RequestBody ResourceDto.ResourceStatusChangReq req)
+            @RequestBody ResourceDto.ResourceStatusChangeReq req)
     {
         return resourceService.changeStatus(authUser, req) ?
                 BaseResponse.success("서비스의 상태가 성공적으로 변경되었습니다.")

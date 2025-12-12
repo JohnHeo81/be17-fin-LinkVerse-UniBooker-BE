@@ -3,13 +3,12 @@ package org.example.unibooker.domain.analytics.service;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
-import org.example.unibooker.common.exception.GlobalExceptionHandler;
-import org.example.unibooker.domain.analytics.model.DashboardDto;
+import org.example.unibooker.domain.analytics.model.dto.DashboardDto;
 import org.example.unibooker.domain.company.model.CompanyStatus;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.reservation.repository.ReservationRepository;
-import org.example.unibooker.domain.resource.model.ResourceGroups;
-import org.example.unibooker.domain.resource.model.ServiceCategory;
+import org.example.unibooker.domain.resource.model.entity.ResourceGroups;
+import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.example.unibooker.domain.resource.repository.ResourceGroupRepository;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.example.unibooker.domain.user.model.UserRole;
@@ -17,7 +16,6 @@ import org.example.unibooker.domain.user.model.UserStatus;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.repository.UserRepository;
-import org.hibernate.usertype.UserType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +28,6 @@ import org.example.unibooker.domain.user.model.Gender;
 import java.time.Year;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

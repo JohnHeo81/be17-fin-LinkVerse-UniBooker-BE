@@ -4,13 +4,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.domain.resource.model.TimeSlotDto;
+import org.example.unibooker.domain.resource.model.dto.TimeSlotDto;
 import org.example.unibooker.domain.resource.service.TimeSlotService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@Tag(name = "타임슬롯 관리", description = "타임슬롯에 대한 값들을 관리합니다.")
+@Tag(name = "TimeSlot API", description = "타임슬롯에 대한 값들을 관리합니다.")
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/timeslot")

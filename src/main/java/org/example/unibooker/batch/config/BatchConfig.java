@@ -8,7 +8,7 @@ import org.example.unibooker.batch.reader.RejectedCompanyReader;
 import org.example.unibooker.batch.writer.InactiveAccountWriter;
 import org.example.unibooker.batch.writer.RejectedCompanyWriter;
 import org.example.unibooker.domain.company.model.entity.Companies;
-import org.example.unibooker.domain.resource.model.Resources;
+import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
