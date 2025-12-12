@@ -83,10 +83,8 @@ public class HoldService {
                     .build();
         }
 
-        // Hold TTL 결정: 전달받은 ttl이 있으면 사용, 없으면 기본값
-        long holdTtl = (request.getTtl() != null && request.getTtl() > 0)
-                ? request.getTtl()
-                : HOLD_TTL;
+        // Hold TTL: 백엔드 고정값 사용 (보안)
+        long holdTtl = HOLD_TTL;
 
         // Hold 생성
         redisTemplate.opsForValue().set(holdKey, userId.toString(), holdTtl, TimeUnit.SECONDS);

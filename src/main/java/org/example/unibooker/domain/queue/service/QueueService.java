@@ -37,7 +37,7 @@ public class QueueService {
     private static final String ENTER_TOKEN_PREFIX = "queue:enter:";
 
     /** 대기 토큰 TTL (초) */
-    private static final long WAIT_TOKEN_TTL = 300; // 5분
+    private static final long WAIT_TOKEN_TTL = 15; // 15초
 
     /** 입장 토큰 TTL (초) */
     private static final long ENTER_TOKEN_TTL = 180; // 3분
