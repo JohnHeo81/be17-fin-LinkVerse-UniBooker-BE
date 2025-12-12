@@ -10,12 +10,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📢 배포 시작 알림
+      - name: 📢 백엔드 배포 시작 알림
         run: |
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
-                "title": "🚀 배포 시작",
+                "title": "🚀 백엔드 배포 시작",
                 "description": "UniBooker 배포가 시작되었습니다.",
                 "color": 3447003,
                 "fields": [
@@ -120,7 +120,7 @@ jobs:
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
-                "title": "✅ 배포 성공",
+                "title": "✅ 백엔드 배포 성공",
                 "description": "UniBooker 배포가 완료되었습니다!",
                 "color": 3066993,
                 "fields": [
@@ -137,7 +137,7 @@ jobs:
           curl -H "Content-Type: application/json" \
             -d '{
               "embeds": [{
-                "title": "❌ 배포 실패",
+                "title": "❌ 백엔드 배포 실패",
                 "description": "UniBooker 배포에 실패했습니다!",
                 "color": 15158332,
                 "fields": [
