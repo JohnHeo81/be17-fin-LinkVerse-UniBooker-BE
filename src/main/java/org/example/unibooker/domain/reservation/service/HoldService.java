@@ -8,6 +8,7 @@ import org.example.unibooker.domain.reservation.model.dto.HoldDto;
 import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -36,8 +37,9 @@ public class HoldService {
     /** Hold 키 접두사 */
     private static final String HOLD_KEY_PREFIX = "hold:";
 
-    /** Hold TTL (초) */
-    private static final long HOLD_TTL = 120; // 2분
+    /** Hold TTL (초) - application.yml에서 주입 */
+    @Value("${ttl.hold}")
+    private long holdTtl;
 
     /**
      * Hold 생성
@@ -60,13 +62,13 @@ public class HoldService {
 
             // 본인이 이미 Hold 중이면 TTL 갱신
             if (holderId.equals(userId)) {
-                redisTemplate.expire(holdKey, HOLD_TTL, TimeUnit.SECONDS);
+                redisTemplate.expire(holdKey, holdTtl, TimeUnit.SECONDS);
                 log.info("[Hold] TTL 갱신 - key: {}, userId: {}", holdKey, userId);
 
                 return HoldDto.Response.builder()
                         .success(true)
                         .message("선택이 유지됩니다.")
-                        .remainingSeconds(HOLD_TTL)
+                        .remainingSeconds(holdTtl)
                         .build();
             }
 
@@ -84,10 +86,10 @@ public class HoldService {
         }
 
         // Hold TTL: 백엔드 고정값 사용 (보안)
-        long holdTtl = HOLD_TTL;
+        long ttl = holdTtl;
 
         // Hold 생성
-        redisTemplate.opsForValue().set(holdKey, userId.toString(), holdTtl, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(holdKey, userId.toString(), ttl, TimeUnit.SECONDS);
 
         log.info("[Hold] 생성 완료 - key: {}, userId: {}, TTL: {}초", holdKey, userId, holdTtl);
 

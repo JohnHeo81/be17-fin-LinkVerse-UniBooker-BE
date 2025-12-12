@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.domain.queue.model.dto.QueueDto;
 import org.example.unibooker.domain.resource.model.entity.ServiceCategory;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -36,11 +37,13 @@ public class QueueService {
     /** 입장 토큰 키 접두사 */
     private static final String ENTER_TOKEN_PREFIX = "queue:enter:";
 
-    /** 대기 토큰 TTL (초) */
-    private static final long WAIT_TOKEN_TTL = 15; // 15초
+    /** 대기 토큰 TTL (초) - application.yml에서 주입 */
+    @Value("${ttl.queue.wait}")
+    private long waitTokenTtl;
 
-    /** 입장 토큰 TTL (초) */
-    private static final long ENTER_TOKEN_TTL = 180; // 3분
+    /** 입장 토큰 TTL (초) - application.yml에서 주입 */
+    @Value("${ttl.queue.enter}")
+    private long enterTokenTtl;
 
     /** 예상 처리 시간 (초/명) */
     private static final long ESTIMATED_TIME_PER_USER = 30;
@@ -89,10 +92,10 @@ public class QueueService {
 
         // 대기 토큰 저장 (TTL 5분)
         String tokenValue = String.format("%d:%d", userId, resourceId);
-        redisTemplate.opsForValue().set(waitTokenKey, tokenValue, WAIT_TOKEN_TTL, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(waitTokenKey, tokenValue, waitTokenTtl, TimeUnit.SECONDS);
 
         // 사용자별 대기 토큰 저장 (중복 방지용, TTL 5분)
-        redisTemplate.opsForValue().set(userQueueKey, token, WAIT_TOKEN_TTL, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(userQueueKey, token, waitTokenTtl, TimeUnit.SECONDS);
 
         Long position = redisTemplate.opsForZSet().rank(queueKey, token);
         Long totalWaiting = redisTemplate.opsForZSet().size(queueKey);
@@ -129,7 +132,7 @@ public class QueueService {
         }
 
         // TTL 갱신 (5분)
-        redisTemplate.expire(waitTokenKey, WAIT_TOKEN_TTL, TimeUnit.SECONDS);
+        redisTemplate.expire(waitTokenKey, waitTokenTtl, TimeUnit.SECONDS);
 
         // 현재 순번 조회
         Long position = redisTemplate.opsForZSet().rank(queueKey, token);
@@ -202,14 +205,14 @@ public class QueueService {
         redisTemplate.delete(waitTokenKey);
 
         // 입장 토큰 발급 (TTL 3분, 갱신 안됨)
-        redisTemplate.opsForValue().set(enterTokenKey, tokenValue, ENTER_TOKEN_TTL, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(enterTokenKey, tokenValue, enterTokenTtl, TimeUnit.SECONDS);
 
-        log.info("[Queue] 입장 완료 - token: {}, 남은 시간: {}초", token, ENTER_TOKEN_TTL);
+        log.info("[Queue] 입장 완료 - token: {}, 남은 시간: {}초", token, enterTokenTtl);
 
         return QueueDto.ConsumeResponse.builder()
                 .success(true)
-                .message("입장이 완료되었습니다. 3분 내에 예약을 완료해주세요.")
-                .remainingSeconds(ENTER_TOKEN_TTL)
+                .message("입장이 완료되었습니다. " + (enterTokenTtl / 60) + "분 내에 예약을 완료해주세요.")
+                .remainingSeconds(enterTokenTtl)
                 .build();
     }
 
