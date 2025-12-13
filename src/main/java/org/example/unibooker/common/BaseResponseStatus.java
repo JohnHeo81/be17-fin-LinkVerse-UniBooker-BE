@@ -89,6 +89,7 @@ public enum BaseResponseStatus {
     RESERVATION_ALREADY_CANCELED(90004, "이미 취소된 예약입니다."),
     RESERVATION_TIME_ALREADY_BOOKED(90005, "해당 시간대에 이미 예약이 있습니다."),
     SEAT_ALREADY_BOOKED(90006, "해당 좌석은 이미 예약되어 있습니다."),
+    RESERVATION_LOCK_FAILED(90007, "다른 사용자가 예약 중입니다. 잠시 후 다시 시도해주세요."),
 
     // ========== 100000: ResourceGroup 관련 ==========
     RESOURCE_GROUP_NOT_FOUND(100001, "리소스 그룹 정보를 찾을 수 없습니다."),

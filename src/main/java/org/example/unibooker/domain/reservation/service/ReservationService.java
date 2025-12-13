@@ -18,11 +18,14 @@ import org.example.unibooker.domain.resource.service.CustomFieldValueService;
 import org.example.unibooker.domain.user.model.UserRole;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.repository.UserRepository;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
 
@@ -42,6 +45,9 @@ public class ReservationService {
     private final ResourceGroupRepository resourceGroupRepository;
     private final ResourceRepository resourceRepository;
     private final UserRepository userRepository;
+
+    // 분산락
+    private final RedissonClient redissonClient;
 
 
     /** 사용자 권한 확인 */
@@ -117,64 +123,112 @@ public class ReservationService {
 
     /**
      * 예약하기
-     * - synchronized 키워드를 통해  해당 메소드에 락을 걸어 동시성 문제 해결
+     * - Redis 분산락을 통해 동시성 문제 해결
      */
     @Transactional
     public ReservationDto.Response reserve(ReservationDto.Request dto, Long resourceId, Long userId) {
-        // 일반 사용자 체크
-        Users user = userRepository.findById(userId).orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
-        userRoleCheck(user);
+        // 락 키 생성 (카테고리별 다른 패턴)
+        String lockKey = generateLockKey(resourceId, dto);
+        RLock lock = redissonClient.getLock(lockKey);
 
-        // 리소스 존재 여부 체크
-        Resources resource = resourceRepository.findByIdForUpdate(resourceId).orElseThrow(() -> new BaseException(BaseResponseStatus.RESOURCE_NOT_FOUND));
+        try {
+            // 락 획득 시도 (최대 5초 대기, 3초 후 자동 해제)
+            if (!lock.tryLock(5, 3, TimeUnit.SECONDS)) {
+                log.warn("[Reservation] 락 획득 실패 - lockKey: {}", lockKey);
+                throw new BaseException(BaseResponseStatus.RESERVATION_LOCK_FAILED);
+            }
 
-        // 예약을 하기 위한 조건 검사
-        LocalDateTime[] dates = transDate(resource, dto);       // 예약일 변환
-        duplicatedReservationCheck(resource, user, dates, dto); // 중복 예약 체크 (사용자 입장)
-        overCapacityCheck(resource, dates, dto);                // 정원 초과 체크 (리소스 입장)
+            log.info("[Reservation] 락 획득 성공 - lockKey: {}", lockKey);
 
-        // 예약 생성 및 저장
-        Reservations reservation = reservationRepository.save(dto.toReservationEntity(user, resource, dates));
+            // 일반 사용자 체크
+            Users user = userRepository.findById(userId)
+                    .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+            userRoleCheck(user);
 
-        // 사용자 커스텀 필드 값 저장
-        List<Object> userCustomFieldValues = customFieldValueService.register(reservation.getId(), dto.getCustomFieldValues()); // 현재 받은 Object = UserCustomFieldValues
-        List<CustomFieldDto.CustomFieldValueListRes> userCustomFieldValuesResult = userCustomFieldValues.stream().map(value -> CustomFieldDto.CustomFieldValueListRes.fromUserEntity((UserCustomFieldValues) value)).collect(Collectors.toList());
+            // 리소스 존재 여부 체크 (분산락 사용으로 비관적 락 제거)
+            Resources resource = resourceRepository.findByIdAndIsActiveTrueAndDeletedAtIsNull(resourceId)
+                    .orElseThrow(() -> new BaseException(BaseResponseStatus.RESOURCE_NOT_FOUND));
 
-        // 예약 확정 알림 발송
-        notificationService.sendNotificationToUser(
-                NotificationType.RESERVATION_CONFIRMED,
-                user,
-                resource.getName()
-        );
+            // 예약을 하기 위한 조건 검사
+            LocalDateTime[] dates = transDate(resource, dto);
+            duplicatedReservationCheck(resource, user, dates, dto);
+            overCapacityCheck(resource, dates, dto);
 
-        // 예약 성공 시 Hold 삭제
-        holdService.clearHoldOnReservation(
-                resourceId,
-                resource.getResourceGroup().getCategory(),
-                dto.getDate(),
-                dto.getTime(),
-                dto.getRow(),
-                dto.getCol()
-        );
+            // 예약 생성 및 저장
+            Reservations reservation = reservationRepository.save(dto.toReservationEntity(user, resource, dates));
 
-        // WebSocket 브로드캐스트 (예약 완료)
-        holdWebSocketService.broadcastReservationCompleted(
-                resourceId,
-                dto.getDate() != null ? dto.getDate().toString() : null,
-                dto.getTime() != null ? dto.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) : null,
-                dto.getRow(),
-                dto.getCol()
-        );
+            // 사용자 커스텀 필드 값 저장
+            List<Object> userCustomFieldValues = customFieldValueService.register(reservation.getId(), dto.getCustomFieldValues());
+            List<CustomFieldDto.CustomFieldValueListRes> userCustomFieldValuesResult = userCustomFieldValues.stream()
+                    .map(value -> CustomFieldDto.CustomFieldValueListRes.fromUserEntity((UserCustomFieldValues) value))
+                    .collect(Collectors.toList());
 
-        // 카테고리 별 알맞은 형식으로 응답
-        return switch (resource.getResourceGroup().getCategory()) {
-            case RESERVATION -> ReservationDto.ReservationResponse.from(reservation, userCustomFieldValuesResult);
-            case SEAT -> ReservationDto.SeatResponse.from(reservation, userCustomFieldValuesResult);
-            case EVENT -> ReservationDto.EventResponse.from(reservation, userCustomFieldValuesResult);
-            default -> throw new BaseException(BaseResponseStatus.INVALID_SERVICE_CATEGORY);
-        };
+            // 예약 확정 알림 발송
+            notificationService.sendNotificationToUser(
+                    NotificationType.RESERVATION_CONFIRMED,
+                    user,
+                    resource.getName()
+            );
+
+            // 예약 성공 시 Hold 삭제
+            holdService.clearHoldOnReservation(
+                    resourceId,
+                    resource.getResourceGroup().getCategory(),
+                    dto.getDate(),
+                    dto.getTime(),
+                    dto.getRow(),
+                    dto.getCol()
+            );
+
+            // WebSocket 브로드캐스트 (예약 완료)
+            holdWebSocketService.broadcastReservationCompleted(
+                    resourceId,
+                    dto.getDate() != null ? dto.getDate().toString() : null,
+                    dto.getTime() != null ? dto.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) : null,
+                    dto.getRow(),
+                    dto.getCol()
+            );
+
+            log.info("[Reservation] 예약 완료 - reservationId: {}, lockKey: {}", reservation.getId(), lockKey);
+
+            // 카테고리 별 알맞은 형식으로 응답
+            return switch (resource.getResourceGroup().getCategory()) {
+                case RESERVATION -> ReservationDto.ReservationResponse.from(reservation, userCustomFieldValuesResult);
+                case SEAT -> ReservationDto.SeatResponse.from(reservation, userCustomFieldValuesResult);
+                case EVENT -> ReservationDto.EventResponse.from(reservation, userCustomFieldValuesResult);
+                default -> throw new BaseException(BaseResponseStatus.INVALID_SERVICE_CATEGORY);
+            };
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("[Reservation] 락 획득 중 인터럽트 - lockKey: {}", lockKey, e);
+            throw new BaseException(BaseResponseStatus.RESERVATION_LOCK_FAILED);
+        } finally {
+            // 락 해제 (현재 스레드가 보유한 경우에만)
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
+                log.info("[Reservation] 락 해제 - lockKey: {}", lockKey);
+            }
+        }
     }
 
+    /**
+     * 분산락 키 생성 (카테고리별)
+     */
+    private String generateLockKey(Long resourceId, ReservationDto.Request dto) {
+        if (dto.getRow() != null && dto.getCol() != null) {
+            // SEAT: resourceId + date + time + row + col
+            return String.format("lock:reservation:%d:%s:%s:%d:%d",
+                    resourceId, dto.getDate(), dto.getTime(), dto.getRow(), dto.getCol());
+        } else if (dto.getDate() != null && dto.getTime() != null) {
+            // RESERVATION: resourceId + date + time
+            return String.format("lock:reservation:%d:%s:%s",
+                    resourceId, dto.getDate(), dto.getTime());
+        } else {
+            // EVENT: resourceId only
+            return String.format("lock:reservation:%d", resourceId);
+        }
+    }
 
     /**
      * 예약 목록 조회 - 플랫폼 관리자 및 기업 관리자

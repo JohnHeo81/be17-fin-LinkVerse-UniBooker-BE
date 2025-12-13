@@ -1,5 +1,8 @@
 package org.example.unibooker.config;
 
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,5 +59,19 @@ public class RedisConfig {
         template.setHashKeySerializer(new StringRedisSerializer());
         template.setHashValueSerializer(new StringRedisSerializer());
         return template;
+    }
+
+    /**
+     * Redisson 클라이언트 (분산락용)
+     */
+    @Bean
+    public RedissonClient redissonClient() {
+        Config config = new Config();
+        config.useSingleServer()
+                .setAddress("rediss://" + host + ":" + port)
+                .setPassword(password)
+                .setConnectionMinimumIdleSize(1)
+                .setConnectionPoolSize(2);
+        return Redisson.create(config);
     }
 }
