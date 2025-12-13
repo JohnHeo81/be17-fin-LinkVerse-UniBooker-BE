@@ -18,6 +18,7 @@ import org.example.unibooker.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.example.unibooker.common.exception.LoginFailedException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,12 +39,17 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final TokenStorageService tokenStorageService;
+    private final LoginAttemptService loginAttemptService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     /**
      * 일반 사용자 로그인 (USER)
      * - 이메일 + companyId + role(USER)로 조회
      */
     public UserDto.LoginResponseWithToken loginWithCompany(String email, String password, Long companyId) {
+        // 0. 계정 잠금 확인
+        checkAccountLock(email);
+
         // 1. 사용자 조회 (USER role 명시, DELETED 제외)
         Users user = userRepository.findByEmailAndCompany_IdAndRoleAndStatusNot(
                         email,
@@ -57,7 +63,7 @@ public class AuthService {
         validateUserStatus(user);
 
         // 3. 비밀번호 검증
-        validatePassword(password, user.getPassword());
+        validatePasswordWithAttempt(email, password, user.getPassword());
 
         // 4. 기업 승인 상태 확인
         Companies company = companyRepository.findById(companyId)
@@ -66,6 +72,9 @@ public class AuthService {
         if (company.getStatus() != CompanyStatus.ACTIVE) {
             throw new BaseException(BaseResponseStatus.COMPANY_NOT_APPROVED);
         }
+
+        // 4-1. 로그인 성공 시 실패 횟수 초기화
+        loginAttemptService.resetAttempts(email);
 
         // 5. 로그인 응답 생성
         return createLoginResponse(user, company);
@@ -76,6 +85,9 @@ public class AuthService {
      * - 이메일로만 조회, ADMIN 또는 MANAGER 권한
      */
     public UserDto.LoginResponseWithToken loginWithRoles(String email, String password, List<UserRole> roles) {
+        // 0. 계정 잠금 확인
+        checkAccountLock(email);
+
         // 1. 사용자 조회 (DELETED 제외)
         Users user = userRepository.findByEmailAndRoleInAndStatusNot(email, roles, UserStatus.DELETED)
                 .stream()
@@ -86,7 +98,7 @@ public class AuthService {
         validateUserStatus(user);
 
         // 3. 비밀번호 검증
-        validatePassword(password, user.getPassword());
+        validatePasswordWithAttempt(email, password, user.getPassword());
 
         // 4. 기업 승인 상태 확인
         Companies company = companyRepository.findById(user.getCompany().getId())
@@ -95,6 +107,9 @@ public class AuthService {
         if (company.getStatus() != CompanyStatus.ACTIVE) {
             throw new BaseException(BaseResponseStatus.COMPANY_NOT_APPROVED);
         }
+
+        // 4-1. 로그인 성공 시 실패 횟수 초기화
+        loginAttemptService.resetAttempts(email);
 
         // 5. 로그인 응답 생성
         return createLoginResponse(user, company);
@@ -105,6 +120,9 @@ public class AuthService {
      * - 이메일로만 조회, SUPER 권한만
      */
     public UserDto.LoginResponseWithToken loginWithRole(String email, String password, UserRole role) {
+        // 0. 계정 잠금 확인
+        checkAccountLock(email);
+
         // 1. 사용자 조회 (DELETED 제외)
         Users user = userRepository.findByEmailAndRoleInAndStatusNot(email, List.of(role), UserStatus.DELETED)
                 .stream()
@@ -115,7 +133,10 @@ public class AuthService {
         validateUserStatus(user);
 
         // 3. 비밀번호 검증
-        validatePassword(password, user.getPassword());
+        validatePasswordWithAttempt(email, password, user.getPassword());
+
+        // 3-1. 로그인 성공 시 실패 횟수 초기화
+        loginAttemptService.resetAttempts(email);
 
         // 4. 로그인 응답 생성 (SUPER는 companyId 없음)
         return createLoginResponse(user, null);
@@ -145,6 +166,32 @@ public class AuthService {
     private void validatePassword(String rawPassword, String encodedPassword) {
         if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
             throw new BaseException(BaseResponseStatus.INVALID_PASSWORD);
+        }
+    }
+
+    /**
+     * 계정 잠금 확인
+     */
+    private void checkAccountLock(String email) {
+        if (loginAttemptService.isLocked(email)) {
+            long remainingSeconds = loginAttemptService.getRemainingLockTime(email);
+            long remainingMinutes = (remainingSeconds / 60) + 1;
+            log.warn("계정 잠금 상태 - email: {}, 남은 시간: {}분", email, remainingMinutes);
+            throw new BaseException(BaseResponseStatus.ACCOUNT_LOCKED);
+        }
+    }
+
+    /**
+     * 비밀번호 검증 (실패 시 시도 횟수 기록 및 남은 횟수 안내)
+     */
+    private void validatePasswordWithAttempt(String email, String rawPassword, String encodedPassword) {
+        if (!passwordEncoder.matches(rawPassword, encodedPassword)) {
+            loginAttemptService.recordFailure(email);
+            int failedAttempts = loginAttemptService.getFailedAttempts(email);
+            int remainingAttempts = 5 - failedAttempts;
+
+            log.warn("비밀번호 불일치 - email: {}, 남은 시도 횟수: {}", email, remainingAttempts);
+            throw new LoginFailedException(BaseResponseStatus.INVALID_PASSWORD, remainingAttempts);
         }
     }
 
@@ -238,16 +285,23 @@ public class AuthService {
 
     /**
      * 로그아웃
+     * - Access Token 블랙리스트 등록
      * - Refresh Token 삭제
-     * - 저장소에서 토큰 제거
      */
-    public AuthDto.LogoutResponse logout(Long userId) {
+    public AuthDto.LogoutResponse logout(Long userId, String accessToken) {
+        // 1. Access Token 블랙리스트 등록
+        if (accessToken != null) {
+            long remainingTime = jwtUtil.getRemainingExpiration(accessToken);
+            tokenBlacklistService.addToBlacklist(accessToken, remainingTime);
+        }
+
+        // 2. Refresh Token 삭제
         tokenStorageService.deleteRefreshToken(userId);
         log.info("로그아웃 성공 - userId: {}", userId);
 
         return AuthDto.LogoutResponse.builder()
                 .message("로그아웃되었습니다.")
-                .logoutAt(LocalDateTime.now())  // ← 추가
+                .logoutAt(LocalDateTime.now())
                 .build();
     }
 

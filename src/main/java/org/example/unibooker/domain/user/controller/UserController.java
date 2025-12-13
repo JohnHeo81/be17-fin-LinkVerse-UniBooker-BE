@@ -96,13 +96,14 @@ public class UserController {
             description = "현재 로그인 세션을 종료하고 토큰을 삭제합니다.")
     @PostMapping("/logout")
     public BaseResponse<AuthDto.LogoutResponse> logout(
-            @AuthenticationPrincipal AuthDto.AuthUser authUser,  // 타입 변경: Long → AuthDto.AuthUser
+            @AuthenticationPrincipal AuthDto.AuthUser authUser,
+            @CookieValue(value = "userAccessToken", required = false) String accessToken,
             HttpServletResponse response) {
 
-        // Refresh Token 삭제
-        AuthDto.LogoutResponse logoutResponse = authService.logout(authUser.getId());  // authUser.getId() 사용
+        // Access Token 블랙리스트 등록 + Refresh Token 삭제
+        AuthDto.LogoutResponse logoutResponse = authService.logout(authUser.getId(), accessToken);
 
-        CookieUtil.deleteAllTokenCookies(response, authUser.getRole());  // 권한 파라미터 추가
+        CookieUtil.deleteAllTokenCookies(response, authUser.getRole());
 
         return BaseResponse.success(logoutResponse);
     }

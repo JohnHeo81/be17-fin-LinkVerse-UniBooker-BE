@@ -69,6 +69,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 로그인 실패 예외 처리 (남은 시도 횟수 포함)
+     */
+    @ExceptionHandler(LoginFailedException.class)
+    public ResponseEntity<Map<String, Object>> handleLoginFailedException(LoginFailedException e) {
+        log.warn("LoginFailedException: code={}, remainingAttempts={}",
+                e.getCode(), e.getRemainingAttempts());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", e.getCode());
+        body.put("message", e.getMessage());
+        body.put("isSuccess", false);
+        body.put("remainingAttempts", e.getRemainingAttempts());
+
+        return ResponseEntity
+                .status(HttpStatus.UNAUTHORIZED)
+                .body(body);
+    }
+
+    /**
      * Validation 예외 처리 (@Valid)
      */
     @ExceptionHandler(MethodArgumentNotValidException.class)

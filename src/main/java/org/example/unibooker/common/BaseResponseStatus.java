@@ -15,7 +15,7 @@ public enum BaseResponseStatus {
     INTERNAL_SERVER_ERROR(20001, "서버 내부 오류가 발생했습니다."),
     DATABASE_ERROR(20002, "데이터베이스 오류가 발생했습니다."),
     CONCURRENT_MODIFICATION(20004, "다른 사용자가 동시에 수정을 요청했습니다."),
-
+    TOO_MANY_REQUESTS(20005, "요청 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
 
     // ========== 30000: User 관련 ==========
     USER_NOT_FOUND(30000, "사용자를 찾을 수 없습니다."),
@@ -66,6 +66,7 @@ public enum BaseResponseStatus {
     ACCOUNT_DELETED(50008, "탈퇴한 계정입니다."),
     UNAUTHORIZED_ACTION(50009, "해당 작업을 수행할 권한이 없습니다."),
     UNAUTHORIZED_COMPANY_ACCESS(50010, "해당 기업의 리소스에 접근 권한이 없습니다."),
+    ACCOUNT_LOCKED(50011, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
 
 
     // ========== 60000: File 관련 ==========

@@ -152,6 +152,19 @@ public class JwtUtil {
     }
 
     /**
+     * 토큰의 남은 만료 시간 (ms)
+     */
+    public long getRemainingExpiration(String token) {
+        try {
+            Date expiration = getClaims(token).getExpiration();
+            long remaining = expiration.getTime() - System.currentTimeMillis();
+            return Math.max(0, remaining);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    /**
      * Refresh Token 유효성 검증
      * - 토큰 형식 검증
      * - 만료 여부 확인

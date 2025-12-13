@@ -220,15 +220,6 @@ public class UserService {
     }
 
     /**
-     * 로그아웃
-     * - AuthService에 위임
-     */
-    @Transactional
-    public AuthDto.LogoutResponse logout(Long userId) {
-        return authService.logout(userId);
-    }
-
-    /**
      * 회원 탈퇴
      */
     @Transactional

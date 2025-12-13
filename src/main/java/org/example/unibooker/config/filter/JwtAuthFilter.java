@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.repository.UserRepository;
+import org.example.unibooker.domain.user.service.TokenBlacklistService;
 import org.example.unibooker.utils.JwtUtil;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -37,6 +38,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -55,6 +57,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         try {
             // 2. 토큰 검증
             if (jwtUtil.validateToken(token)) {
+                // 2-1. 블랙리스트 확인
+                if (tokenBlacklistService.isBlacklisted(token)) {
+                    log.warn("블랙리스트 토큰 접근 시도");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"code\":50002,\"message\":\"유효하지 않은 토큰입니다.\",\"isSuccess\":false}");
+                    return;
+                }
+
                 // 3. 토큰에서 사용자 정보 추출
                 Long userId = jwtUtil.getUserId(token);
                 String email = jwtUtil.getEmail(token);

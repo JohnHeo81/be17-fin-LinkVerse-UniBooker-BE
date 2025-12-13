@@ -117,12 +117,14 @@ public class AdminController {
             description = "현재 로그인 세션을 종료하고 토큰을 삭제합니다.")
     @PostMapping("/logout")
     public BaseResponse<AuthDto.LogoutResponse> logout(
-            @AuthenticationPrincipal AuthDto.AuthAdmin authAdmin,  // 타입 변경: Long → AuthDto.AuthAdmin
+            @AuthenticationPrincipal AuthDto.AuthAdmin authAdmin,
+            @CookieValue(value = "adminAccessToken", required = false) String accessToken,
             HttpServletResponse response) {
 
-        AuthDto.LogoutResponse logoutResponse = authService.logout(authAdmin.getId());  // authAdmin.getId() 사용
+        // Access Token 블랙리스트 등록 + Refresh Token 삭제
+        AuthDto.LogoutResponse logoutResponse = authService.logout(authAdmin.getId(), accessToken);
 
-        CookieUtil.deleteAllTokenCookies(response, authAdmin.getRole());  // 권한 파라미터 추가
+        CookieUtil.deleteAllTokenCookies(response, authAdmin.getRole());
 
         return BaseResponse.success(logoutResponse);
     }

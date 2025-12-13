@@ -3,6 +3,7 @@ package org.example.unibooker.config;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.config.filter.JwtAuthFilter;
+import org.example.unibooker.config.filter.RateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -32,6 +33,7 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -153,6 +155,9 @@ public class SecurityConfig {
                         // ===== 그 외 모든 요청은 인증 필요 =====
                         .anyRequest().authenticated()
                 )
+
+                // Rate Limit 필터 추가 (JWT 필터보다 먼저 실행)
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
 
                 // JWT 필터 추가
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
