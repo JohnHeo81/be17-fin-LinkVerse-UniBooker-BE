@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponse;
 import org.example.unibooker.domain.auth.oauth.model.dto.OAuthDto;
 import org.example.unibooker.domain.auth.oauth.service.OAuthService;
+import org.example.unibooker.domain.user.model.UserRole;
+import org.example.unibooker.utils.CookieUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -127,29 +129,14 @@ public class OAuthController {
      * JWT 토큰 쿠키 설정
      */
     private void setTokenCookies(HttpServletResponse response, String accessToken, String refreshToken) {
-        // Access Token 쿠키
-        Cookie accessCookie = new Cookie("accessToken", accessToken);
-        accessCookie.setHttpOnly(true);
-        accessCookie.setSecure(secureCookie);
-        accessCookie.setPath("/");
-        accessCookie.setMaxAge(86400); // 1일
+        // 기존 모든 역할 쿠키 삭제 (단일 세션 정책)
+        CookieUtil.deleteAllRolesCookies(response);
 
-        // Refresh Token 쿠키
-        Cookie refreshCookie = new Cookie("refreshToken", refreshToken);
-        refreshCookie.setHttpOnly(true);
-        refreshCookie.setSecure(secureCookie);
-        refreshCookie.setPath("/");
-        refreshCookie.setMaxAge(604800); // 7일
+        // USER 역할로 쿠키 설정
+        response.addCookie(CookieUtil.createAccessTokenCookie(accessToken, UserRole.USER));
+        response.addCookie(CookieUtil.createRefreshTokenCookie(refreshToken, UserRole.USER));
 
-        // SameSite 설정 (Cross-Domain)
-        String sameSite = secureCookie ? "None" : "Lax";
-
-        response.addHeader("Set-Cookie",
-                String.format("accessToken=%s; Path=/; Max-Age=86400; HttpOnly; %s; SameSite=%s",
-                        accessToken, secureCookie ? "Secure" : "", sameSite));
-        response.addHeader("Set-Cookie",
-                String.format("refreshToken=%s; Path=/; Max-Age=604800; HttpOnly; %s; SameSite=%s",
-                        refreshToken, secureCookie ? "Secure" : "", sameSite));
+        log.info("OAuth JWT 쿠키 설정 완료");
     }
 
     /**
