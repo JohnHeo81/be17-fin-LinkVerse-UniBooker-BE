@@ -68,6 +68,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/admins/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/super/login").permitAll()
 
+                        // ===== OAuth =====
+                        .requestMatchers("/api/oauth/**").permitAll()
+
                         // ===== 토큰 갱신 (공통) =====
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
 

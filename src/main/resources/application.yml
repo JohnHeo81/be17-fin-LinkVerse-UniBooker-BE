@@ -134,6 +134,29 @@ jwt:
   refresh-token-validity: 604800000   # 7일 (7 * 24 * 60 * 60 * 1000)
 
 # =================================================================
+# OAuth 설정
+# =================================================================
+oauth:
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
+    redirect-uri: ${KAKAO_REDIRECT_URI}
+  naver:
+    client-id: ${NAVER_CLIENT_ID}
+    client-secret: ${NAVER_CLIENT_SECRET}
+    redirect-uri: ${NAVER_REDIRECT_URI}
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    redirect-uri: ${GOOGLE_REDIRECT_URI}
+
+# =================================================================
+# 프론트엔드 URL 설정
+# =================================================================
+front:
+  base-url: ${FRONT_BASE_URL}
+
+# =================================================================
 # 앱 설정
 # =================================================================
 app:

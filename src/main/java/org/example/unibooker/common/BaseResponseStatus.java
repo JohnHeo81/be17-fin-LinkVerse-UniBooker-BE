@@ -68,6 +68,13 @@ public enum BaseResponseStatus {
     UNAUTHORIZED_COMPANY_ACCESS(50010, "해당 기업의 리소스에 접근 권한이 없습니다."),
     ACCOUNT_LOCKED(50011, "로그인 시도 횟수를 초과했습니다. 잠시 후 다시 시도해주세요."),
 
+    // ========== 50020: OAuth 관련 ==========
+    OAUTH_AUTH_FAILED(50020, "OAuth 인증에 실패했습니다."),
+    OAUTH_TOKEN_FAILED(50021, "OAuth 토큰 발급에 실패했습니다."),
+    OAUTH_USER_INFO_FAILED(50022, "OAuth 사용자 정보 조회에 실패했습니다."),
+    OAUTH_TEMP_TOKEN_EXPIRED(50023, "OAuth 인증이 만료되었습니다. 다시 시도해주세요."),
+    OAUTH_UNSUPPORTED_PROVIDER(50024, "지원하지 않는 OAuth 제공자입니다."),
+    OAUTH_AGREEMENT_REQUIRED(50025, "약관 동의가 필요합니다."),
 
     // ========== 60000: File 관련 ==========
     INVALID_FILE_TYPE(60000, "지원하지 않는 파일 형식입니다. (jpg, jpeg, png만 가능)"),

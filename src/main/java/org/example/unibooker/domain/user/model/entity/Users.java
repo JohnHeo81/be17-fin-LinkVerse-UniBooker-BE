@@ -36,7 +36,7 @@ public class Users extends BaseEntity {
     @Comment("이메일")
     private String email;
 
-    @Column(nullable = false, length = 255)
+    @Column(length = 255)
     @Comment("비밀번호")
     private String password;
 
