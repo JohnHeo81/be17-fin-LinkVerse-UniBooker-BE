@@ -87,6 +87,12 @@ public class OAuthService {
      */
     @Transactional
     public String handleCallback(String provider, String code, String state) {
+        // link 요청인지 확인
+        if (state != null && state.startsWith("link:")) {
+            String linkToken = state.substring(5);  // "link:" 제거
+            return handleLinkCallback(provider, code, linkToken);
+        }
+
         String companySlug = state;
 
         try {
@@ -488,15 +494,14 @@ public class OAuthService {
         }
 
         OAuthClient client = getOAuthClient(provider);
-        return client.getAuthorizationUrl(linkToken);
+        return client.getAuthorizationUrl("link:" + linkToken);
     }
 
     /**
      * 소셜 연동 콜백 처리
      */
     @Transactional
-    public String handleLinkCallback(String provider, String code, String state) {
-        String linkToken = state;
+    public String handleLinkCallback(String provider, String code, String linkToken) {
 
         try {
             // 1. Redis에서 연동 정보 조회
