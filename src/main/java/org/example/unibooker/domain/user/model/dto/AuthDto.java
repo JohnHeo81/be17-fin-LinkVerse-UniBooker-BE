@@ -236,13 +236,17 @@ public class AuthDto {
     @Schema(description = "인증된 일반 사용자")
     public static class AuthUser extends AuthenticatedUser {
 
+        @Schema(description = "기업 Slug", example = "hanwha-systems")
+        private final String companySlug;  // 추가
+
         private AuthUser(Long id, LocalDateTime createdAt, LocalDateTime updatedAt,
                          LocalDateTime deletedAt, String name, String email,
                          String password, String phone, String birthDate, Gender gender,
                          UserRole role, UserStatus status, Long companyId,
-                         Boolean isFirstLogin) {
+                         Boolean isFirstLogin, String companySlug) {  // 파라미터 추가
             super(id, createdAt, updatedAt, deletedAt, name, email,
                     password, phone, birthDate, gender, role, status, companyId, isFirstLogin);
+            this.companySlug = companySlug;  // 추가
         }
 
         /**
@@ -263,7 +267,8 @@ public class AuthDto {
                     user.getRole(),
                     user.getStatus(),
                     user.getCompany().getId(),
-                    user.getIsFirstLogin()
+                    user.getIsFirstLogin(),
+                    user.getCompany().getCompanySlug()
             );
         }
 

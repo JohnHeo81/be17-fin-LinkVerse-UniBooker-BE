@@ -76,6 +76,13 @@ public enum BaseResponseStatus {
     OAUTH_UNSUPPORTED_PROVIDER(50024, "지원하지 않는 OAuth 제공자입니다."),
     OAUTH_AGREEMENT_REQUIRED(50025, "약관 동의가 필요합니다."),
 
+    // ========== 50030: OAuth 소셜 연동 관련 ==========
+    OAUTH_EMAIL_ALREADY_EXISTS(50030, "이미 가입된 이메일입니다. 다른 이메일을 입력해주세요."),
+    OAUTH_ACCOUNT_NOT_FOUND(50031, "연동된 소셜 계정을 찾을 수 없습니다."),
+    OAUTH_CANNOT_UNLINK_LAST(50032, "마지막 로그인 수단은 해제할 수 없습니다. 비밀번호를 먼저 설정해주세요."),
+    OAUTH_ALREADY_LINKED(50033, "이미 다른 계정에 연동된 소셜 계정입니다."),
+    OAUTH_LINK_TOKEN_EXPIRED(50034, "연동 요청이 만료되었습니다. 다시 시도해주세요."),
+
     // ========== 60000: File 관련 ==========
     INVALID_FILE_TYPE(60000, "지원하지 않는 파일 형식입니다. (jpg, jpeg, png만 가능)"),
     FILE_SIZE_EXCEEDED(60001, "파일 크기는 5MB를 초과할 수 없습니다."),

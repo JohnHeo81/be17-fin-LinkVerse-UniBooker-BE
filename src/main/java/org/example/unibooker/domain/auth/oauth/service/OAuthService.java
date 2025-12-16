@@ -29,9 +29,9 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * OAuth 인증 서비스
@@ -62,6 +62,7 @@ public class OAuthService {
     private String frontBaseUrl;
 
     private static final String OAUTH_TEMP_TOKEN_PREFIX = "oauth:temp:";
+    private static final String OAUTH_LINK_TOKEN_PREFIX = "oauth:link:";
     private static final long TEMP_TOKEN_TTL_MINUTES = 10;
 
     /**
@@ -247,26 +248,8 @@ public class OAuthService {
         redisTemplate.delete(key);
 
         if (existingUser.isPresent()) {
-            // 기존 사용자 → 소셜 계정 연동 후 로그인
-            Users user = existingUser.get();
-
-            OAuthProvider provider = OAuthProvider.from(tempUserInfo.getProvider());
-            UserSocialAccounts socialAccount = UserSocialAccounts.create(
-                    user,
-                    provider,
-                    tempUserInfo.getProviderId()
-            );
-            socialAccountRepository.save(socialAccount);
-
-            log.info("OAuth 이메일 입력 - 기존 사용자 연동, userId: {}", user.getId());
-
-            return OAuthDto.EmailResponse.builder()
-                    .status("success")
-                    .userId(user.getId())
-                    .name(user.getName())
-                    .email(user.getEmail())
-                    .companySlug(company.getCompanySlug())
-                    .build();
+            log.warn("OAuth 이메일 입력 - 이미 가입된 이메일: {}", email);
+            throw new BaseException(BaseResponseStatus.OAUTH_EMAIL_ALREADY_EXISTS);
         }
 
         // 5. 신규 사용자 → 약관 동의 필요
@@ -446,5 +429,173 @@ public class OAuthService {
         tokenStorageService.saveRefreshToken(userId, refreshToken, 604800000L);
 
         return new String[]{accessToken, refreshToken};
+    }
+
+    // ========== 소셜 계정 연동 관리 ==========
+
+    /**
+     * 연동된 소셜 계정 목록 조회
+     */
+    public List<OAuthDto.LinkedAccount> getLinkedAccounts(Long userId) {
+        List<UserSocialAccounts> linkedAccounts = socialAccountRepository.findByUserId(userId);
+
+        Set<String> linkedProviders = linkedAccounts.stream()
+                .map(account -> account.getProvider().name())
+                .collect(Collectors.toSet());
+
+        // 모든 Provider 목록 반환 (연동 여부 포함)
+        return Arrays.stream(OAuthProvider.values())
+                .map(provider -> OAuthDto.LinkedAccount.builder()
+                        .provider(provider.name())
+                        .providerName(getProviderDisplayName(provider))
+                        .linked(linkedProviders.contains(provider.name()))
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Provider 표시 이름
+     */
+    private String getProviderDisplayName(OAuthProvider provider) {
+        return switch (provider) {
+            case KAKAO -> "카카오";
+            case NAVER -> "네이버";
+            case GOOGLE -> "구글";
+        };
+    }
+
+    /**
+     * 소셜 연동용 인증 URL 생성
+     * - Redis에 임시 토큰 저장 (보안)
+     */
+    public String getLinkAuthorizationUrl(String provider, Long userId, Long companyId, String companySlug) {
+        // 임시 토큰 생성
+        String linkToken = UUID.randomUUID().toString();
+
+        // Redis에 연동 정보 저장
+        OAuthDto.LinkTempInfo linkInfo = OAuthDto.LinkTempInfo.builder()
+                .userId(userId)
+                .companyId(companyId)
+                .companySlug(companySlug)
+                .build();
+
+        try {
+            String linkInfoJson = objectMapper.writeValueAsString(linkInfo);
+            String key = OAUTH_LINK_TOKEN_PREFIX + linkToken;
+            redisTemplate.opsForValue().set(key, linkInfoJson, TEMP_TOKEN_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            throw new BaseException(BaseResponseStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        OAuthClient client = getOAuthClient(provider);
+        return client.getAuthorizationUrl(linkToken);
+    }
+
+    /**
+     * 소셜 연동 콜백 처리
+     */
+    @Transactional
+    public String handleLinkCallback(String provider, String code, String state) {
+        String linkToken = state;
+
+        try {
+            // 1. Redis에서 연동 정보 조회
+            String key = OAUTH_LINK_TOKEN_PREFIX + linkToken;
+            String linkInfoJson = redisTemplate.opsForValue().get(key);
+
+            if (linkInfoJson == null) {
+                throw new BaseException(BaseResponseStatus.OAUTH_LINK_TOKEN_EXPIRED);
+            }
+
+            OAuthDto.LinkTempInfo linkInfo;
+            try {
+                linkInfo = objectMapper.readValue(linkInfoJson, OAuthDto.LinkTempInfo.class);
+            } catch (JsonProcessingException e) {
+                throw new BaseException(BaseResponseStatus.OAUTH_LINK_TOKEN_EXPIRED);
+            }
+
+            // 2. Redis 토큰 삭제
+            redisTemplate.delete(key);
+
+            // 3. 사용자 조회
+            Users user = userRepository.findById(linkInfo.getUserId())
+                    .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+
+            // 4. OAuth 토큰 및 사용자 정보 조회
+            OAuthClient client = getOAuthClient(provider);
+            String accessToken = client.getAccessToken(code);
+            OAuthUserInfo userInfo = client.getUserInfo(accessToken);
+
+            // 5. 이미 다른 계정에 연동된 소셜 계정인지 확인
+            boolean alreadyLinked = socialAccountRepository.existsByProviderAndProviderIdAndUser_Company_Id(
+                    userInfo.getProvider(),
+                    userInfo.getProviderId(),
+                    linkInfo.getCompanyId()
+            );
+
+            if (alreadyLinked) {
+                log.warn("이미 연동된 소셜 계정 - provider: {}, providerId: {}", provider, userInfo.getProviderId());
+                return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
+                        "/mypage?link=error&message=already_linked";
+            }
+
+            // 6. 이미 해당 사용자가 같은 Provider로 연동했는지 확인
+            boolean userAlreadyLinked = socialAccountRepository
+                    .findByUserIdAndProvider(linkInfo.getUserId(), userInfo.getProvider())
+                    .isPresent();
+
+            if (userAlreadyLinked) {
+                log.warn("이미 같은 Provider로 연동됨 - userId: {}, provider: {}", linkInfo.getUserId(), provider);
+                return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
+                        "/mypage?link=error&message=already_linked_provider";
+            }
+
+            // 7. 소셜 계정 연동
+            UserSocialAccounts socialAccount = UserSocialAccounts.create(
+                    user,
+                    userInfo.getProvider(),
+                    userInfo.getProviderId()
+            );
+            socialAccountRepository.save(socialAccount);
+
+            log.info("소셜 계정 연동 완료 - userId: {}, provider: {}", linkInfo.getUserId(), provider);
+
+            return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
+                    "/mypage?link=success&provider=" + provider;
+
+        } catch (BaseException e) {
+            log.error("소셜 연동 실패: {}", e.getMessage());
+            return frontBaseUrl + "/mypage?link=error&message=" + e.getStatus().getMessage();
+        } catch (Exception e) {
+            log.error("소셜 연동 중 오류 발생", e);
+            return frontBaseUrl + "/mypage?link=error&message=연동에 실패했습니다.";
+        }
+    }
+
+    /**
+     * 소셜 계정 연동 해제
+     */
+    @Transactional
+    public void unlinkSocialAccount(Long userId, String provider) {
+        OAuthProvider oAuthProvider = OAuthProvider.from(provider);
+
+        UserSocialAccounts account = socialAccountRepository
+                .findByUserIdAndProvider(userId, oAuthProvider)
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.OAUTH_ACCOUNT_NOT_FOUND));
+
+        // 사용자 조회
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+
+        // 연동된 소셜 계정 수 확인
+        long linkedCount = socialAccountRepository.countByUserId(userId);
+
+        // 비밀번호가 없고, 연동된 소셜 계정이 1개뿐이면 해제 불가
+        if (user.getPassword() == null && linkedCount <= 1) {
+            throw new BaseException(BaseResponseStatus.OAUTH_CANNOT_UNLINK_LAST);
+        }
+
+        socialAccountRepository.delete(account);
+        log.info("소셜 계정 연동 해제 - userId: {}, provider: {}", userId, provider);
     }
 }

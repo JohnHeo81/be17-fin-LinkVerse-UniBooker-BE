@@ -92,4 +92,30 @@ public class OAuthDto {
         private Long companyId;
         private String companySlug;
     }
+
+    /**
+     * 연동된 소셜 계정 정보
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LinkedAccount {
+        private String provider;      // KAKAO, NAVER, GOOGLE
+        private String providerName;  // 카카오, 네이버, 구글
+        private boolean linked;       // 연동 여부
+    }
+
+    /**
+     * 소셜 연동용 임시 정보
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LinkTempInfo {
+        private Long userId;
+        private Long companyId;
+        private String companySlug;
+    }
 }

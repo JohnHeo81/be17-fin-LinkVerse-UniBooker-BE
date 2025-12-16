@@ -7,15 +7,22 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponse;
+import org.example.unibooker.common.BaseResponseStatus;
+import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.auth.oauth.model.dto.OAuthDto;
 import org.example.unibooker.domain.auth.oauth.service.OAuthService;
+import org.example.unibooker.domain.company.model.entity.Companies;
+import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.user.model.UserRole;
+import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.utils.CookieUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * OAuth 인증 컨트롤러
@@ -31,6 +38,7 @@ import java.io.IOException;
 public class OAuthController {
 
     private final OAuthService oAuthService;
+    private final CompanyRepository companyRepository;
 
     @Value("${server.servlet.session.cookie.secure:false}")
     private boolean secureCookie;
@@ -152,5 +160,75 @@ public class OAuthController {
             log.error("userId 추출 실패: {}", url);
         }
         return null;
+    }
+
+    // ========== 소셜 계정 연동 관리 ==========
+
+    /**
+     * 연동된 소셜 계정 목록 조회
+     */
+    @Operation(summary = "소셜 계정 목록", description = "연동된 소셜 계정 목록을 조회합니다.")
+    @GetMapping("/accounts")
+    public ResponseEntity<BaseResponse<List<OAuthDto.LinkedAccount>>> getLinkedAccounts(
+            @AuthenticationPrincipal AuthDto.AuthUser authUser) {
+
+        List<OAuthDto.LinkedAccount> accounts = oAuthService.getLinkedAccounts(authUser.getId());
+        return ResponseEntity.ok(BaseResponse.success(accounts));
+    }
+
+    /**
+     * 소셜 계정 연동 요청 (마이페이지에서)
+     */
+    @GetMapping("/link/{provider}")
+    public void linkSocialAccount(
+            @PathVariable String provider,
+            @AuthenticationPrincipal AuthDto.AuthUser authUser,
+            HttpServletResponse response) throws IOException {
+
+        log.info("소셜 계정 연동 요청 - provider: {}, userId: {}", provider, authUser.getId());
+
+        // companySlug 조회
+        Companies company = companyRepository.findById(authUser.getCompanyId())
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.COMPANY_NOT_FOUND));
+
+        String authUrl = oAuthService.getLinkAuthorizationUrl(
+                provider,
+                authUser.getId(),           // getUserId() → getId()
+                authUser.getCompanyId(),
+                company.getCompanySlug()    // 조회한 slug 사용
+        );
+        response.sendRedirect(authUrl);
+    }
+
+    /**
+     * 소셜 계정 연동 콜백
+     */
+    @Operation(summary = "소셜 연동 콜백", description = "소셜 계정 연동 콜백을 처리합니다.")
+    @GetMapping("/link/{provider}/callback")
+    public void handleLinkCallback(
+            @PathVariable String provider,
+            @RequestParam String code,
+            @RequestParam String state,
+            HttpServletResponse response) throws IOException {
+
+        log.info("소셜 연동 콜백 수신 - provider: {}, state: {}", provider, state);
+
+        String redirectUrl = oAuthService.handleLinkCallback(provider, code, state);
+        response.sendRedirect(redirectUrl);
+    }
+
+    /**
+     * 소셜 계정 연동 해제
+     */
+    @Operation(summary = "소셜 계정 연동 해제", description = "연동된 소셜 계정을 해제합니다.")
+    @DeleteMapping("/accounts/{provider}")
+    public ResponseEntity<BaseResponse<String>> unlinkSocialAccount(
+            @PathVariable String provider,
+            @AuthenticationPrincipal AuthDto.AuthUser authUser) {
+
+        log.info("소셜 계정 연동 해제 - provider: {}, userId: {}", provider, authUser.getId());
+
+        oAuthService.unlinkSocialAccount(authUser.getId(), provider);
+        return ResponseEntity.ok(BaseResponse.success("소셜 계정 연동이 해제되었습니다."));
     }
 }
