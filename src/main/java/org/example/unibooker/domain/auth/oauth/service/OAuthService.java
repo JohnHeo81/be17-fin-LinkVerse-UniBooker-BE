@@ -541,7 +541,7 @@ public class OAuthService {
             if (alreadyLinked) {
                 log.warn("이미 연동된 소셜 계정 - provider: {}, providerId: {}", provider, userInfo.getProviderId());
                 return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
-                        "/mypage?link=error&message=already_linked";
+                        "/user/mypage?link=error&message=already_linked";
             }
 
             // 6. 이미 해당 사용자가 같은 Provider로 연동했는지 확인
@@ -552,7 +552,7 @@ public class OAuthService {
             if (userAlreadyLinked) {
                 log.warn("이미 같은 Provider로 연동됨 - userId: {}, provider: {}", linkInfo.getUserId(), provider);
                 return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
-                        "/mypage?link=error&message=already_linked_provider";
+                        "/user/mypage?link=error&message=already_linked_provider";
             }
 
             // 7. 소셜 계정 연동
@@ -566,14 +566,14 @@ public class OAuthService {
             log.info("소셜 계정 연동 완료 - userId: {}, provider: {}", linkInfo.getUserId(), provider);
 
             return frontBaseUrl + "/c/" + linkInfo.getCompanySlug() +
-                    "/mypage?link=success&provider=" + provider;
+                    "/user/mypage?link=success&provider=" + provider;
 
         } catch (BaseException e) {
             log.error("소셜 연동 실패: {}", e.getMessage());
-            return frontBaseUrl + "/mypage?link=error&message=" + e.getStatus().getMessage();
+            return frontBaseUrl + "/user/mypage?link=error&message=" + e.getStatus().getMessage();
         } catch (Exception e) {
             log.error("소셜 연동 중 오류 발생", e);
-            return frontBaseUrl + "/mypage?link=error&message=연동에 실패했습니다.";
+            return frontBaseUrl + "/user/mypage?link=error&message=연동에 실패했습니다.";
         }
     }
 
