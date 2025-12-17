@@ -2,8 +2,8 @@ package org.example.unibooker.domain.user.service;
 
 /**
  * Refresh Token 저장소 인터페이스
- * - Redis 연동 전까지는 MemoryTokenStorageService 사용
- * - Redis 연동 후 RedisTokenStorageService로 교체 예정
+ * - Redis 기반 저장소 사용 (RedisTokenStorageService)
+ * - 배포 시에도 토큰 유지, 다중 서버 환경 지원
  */
 public interface TokenStorageService {
 

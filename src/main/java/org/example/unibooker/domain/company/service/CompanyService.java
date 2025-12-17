@@ -2,7 +2,7 @@ package org.example.unibooker.domain.company.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponseStatus;
-import org.example.unibooker.common.constants.ReservedSlugs;
+import org.example.unibooker.domain.company.constants.ReservedSlugs;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.company.model.CompanyStatus;
 import org.example.unibooker.domain.company.model.dto.CompanyDto;

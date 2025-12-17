@@ -1,16 +1,13 @@
 package org.example.unibooker.domain.user.service;
 
-import lombok.RequiredArgsConstructor;
 import org.example.unibooker.common.BaseResponseStatus;
-import org.example.unibooker.common.constants.ReservedSlugs;
+import org.example.unibooker.domain.company.constants.ReservedSlugs;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.company.model.dto.CompanyDto;
 import org.example.unibooker.domain.company.model.CompanyStatus;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.resource.repository.ResourceGroupRepository;
-import org.example.unibooker.domain.notification.model.NotificationType;
-import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.notification.model.NotificationType;
 import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.user.model.*;
@@ -29,12 +26,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;

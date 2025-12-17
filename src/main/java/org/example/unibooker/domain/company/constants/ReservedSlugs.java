@@ -1,4 +1,4 @@
-package org.example.unibooker.common.constants;
+package org.example.unibooker.domain.company.constants;
 
 import java.util.Arrays;
 import java.util.List;
