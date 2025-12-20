@@ -147,4 +147,14 @@ public interface ReservationRepository extends JpaRepository<Reservations, Long>
       AND r.deletedAt IS NULL
 """)
     int countSeatReservationsByTime(Long resourceId, LocalDateTime startDate, LocalDateTime endDate);
+
+    /** 리마인더 대상 예약 조회 (시작일 범위) */
+    @Query("""
+    SELECT r FROM Reservations r
+    WHERE r.startDate >= :from
+      AND r.startDate < :to
+      AND r.status = 'CONFIRMED'
+      AND r.deletedAt IS NULL
+""")
+    List<Reservations> findReminderTargets(LocalDateTime from, LocalDateTime to);
 }

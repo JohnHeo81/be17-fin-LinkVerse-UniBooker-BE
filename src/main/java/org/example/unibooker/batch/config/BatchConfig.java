@@ -3,10 +3,13 @@ package org.example.unibooker.batch.config;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.batch.processor.InactiveAccountProcessor;
 import org.example.unibooker.batch.processor.RejectedCompanyProcessor;
+import org.example.unibooker.batch.processor.ReservationReminderProcessor;
 import org.example.unibooker.batch.reader.InactiveAccountReader;
 import org.example.unibooker.batch.reader.RejectedCompanyReader;
+import org.example.unibooker.batch.reader.ReservationReminderReader;
 import org.example.unibooker.batch.writer.InactiveAccountWriter;
 import org.example.unibooker.batch.writer.RejectedCompanyWriter;
+import org.example.unibooker.batch.writer.ReservationReminderWriter;
 import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.resource.model.entity.Resources;
 import org.example.unibooker.domain.user.model.entity.Users;
@@ -130,6 +133,35 @@ public class BatchConfig {
                 .reader(rejectedCompanyReader)
                 .processor(rejectedCompanyProcessor)
                 .writer(rejectedCompanyWriter)
+                .build();
+    }
+
+    // ========== Reservation Reminder Job ==========
+
+    /**
+     * 예약 리마인더 Job
+     * - 1시간 전, 24시간 전 알림 발송
+     */
+    @Bean
+    public Job reservationReminderJob(Step reservationReminderStep) {
+        return new JobBuilder("reservationReminderJob", jobRepository)
+                .start(reservationReminderStep)
+                .build();
+    }
+
+    /**
+     * 예약 리마인더 Step
+     */
+    @Bean
+    public Step reservationReminderStep(
+            ReservationReminderReader reader,
+            ReservationReminderProcessor processor,
+            ReservationReminderWriter writer) {
+        return new StepBuilder("reservationReminderStep", jobRepository)
+                .<ReservationReminderReader.ReminderItem, ReservationReminderReader.ReminderItem>chunk(50, transactionManager)
+                .reader(reader)
+                .processor(processor)
+                .writer(writer)
                 .build();
     }
 }

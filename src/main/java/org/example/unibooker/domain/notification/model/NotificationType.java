@@ -26,11 +26,18 @@ public enum NotificationType {
             "예약이 취소되었습니다."
     ),
 
-    RESERVATION_REMINDER(
-            "[%s] 예약 알림",
-            "Reservation Reminder",
+    RESERVATION_REMINDER_1H(
+            "[%s] 예약 1시간 전",
+            "Reservation Reminder 1H",
             "USER",
-            "예약하신 %s 일정이 곧 시작됩니다."
+            "%s 예약이 1시간 후 시작됩니다. (%s)"
+    ),
+
+    RESERVATION_REMINDER_24H(
+            "[%s] 예약 하루 전",
+            "Reservation Reminder 24H",
+            "USER",
+            "%s 예약이 내일 예정되어 있습니다. (%s)"
     ),
 
     // ========== 사용자 관련 (User) ==========
