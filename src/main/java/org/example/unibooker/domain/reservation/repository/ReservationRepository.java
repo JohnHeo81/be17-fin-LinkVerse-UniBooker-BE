@@ -138,4 +138,13 @@ public interface ReservationRepository extends JpaRepository<Reservations, Long>
             "GROUP BY HOUR(r.createdAt)")
     List<Object[]> countByHour(Long resourceGroupId, LocalDateTime startDate, LocalDateTime endDate);
 
+    /** 해당 시간대 좌석 예약 수 조회 (전체) */
+    @Query("""
+    SELECT COUNT(r)
+    FROM Reservations r
+    WHERE r.resources.id = :resourceId 
+      AND (r.startDate < :endDate AND r.endDate > :startDate) 
+      AND r.deletedAt IS NULL
+""")
+    int countSeatReservationsByTime(Long resourceId, LocalDateTime startDate, LocalDateTime endDate);
 }

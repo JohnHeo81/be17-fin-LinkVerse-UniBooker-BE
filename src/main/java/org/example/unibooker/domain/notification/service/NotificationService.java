@@ -57,6 +57,21 @@ public class NotificationService {
         }
     }
 
+    /**
+     * 특정 기업의 ADMIN/MANAGER에게 알림 발송
+     */
+    @Transactional
+    public void sendNotificationToCompanyAdmins(NotificationType type, Long companyId, Object... args) {
+        List<Users> admins = userRepository.findByCompany_IdAndRoleInAndStatus(
+                companyId,
+                List.of(UserRole.ADMIN, UserRole.MANAGER),
+                UserStatus.ACTIVE
+        );
+
+        for (Users admin : admins) {
+            sendNotificationToUser(type, admin, args);
+        }
+    }
 
     // -------------------- 특정 대상에게 알림 전송 --------------------
     @Transactional

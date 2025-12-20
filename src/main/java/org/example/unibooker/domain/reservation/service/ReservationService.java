@@ -170,6 +170,9 @@ public class ReservationService {
                     resource.getName()
             );
 
+            // 마감 체크 및 관리자 알림
+            checkAndNotifyFullyBooked(resource, dates, dto);
+
             // 예약 성공 시 Hold 삭제
             holdService.clearHoldOnReservation(
                     resourceId,
@@ -209,6 +212,46 @@ public class ReservationService {
                 lock.unlock();
                 log.info("[Reservation] 락 해제 - lockKey: {}", lockKey);
             }
+        }
+    }
+
+    /**
+     * 예약 마감 체크 및 관리자 알림
+     */
+    private void checkAndNotifyFullyBooked(Resources resource, LocalDateTime[] dates, ReservationDto.Request dto) {
+        boolean isFullyBooked = false;
+        String timeInfo = "";
+
+        switch (resource.getResourceGroup().getCategory()) {
+            case RESERVATION:
+                // 예약형: 해당 시간대 1건 = 풀부킹
+                isFullyBooked = true;
+                timeInfo = dto.getDate() + " " + dto.getTime();
+                break;
+
+            case SEAT:
+                // 좌석형: 해당 시간대 모든 좌석 예약 완료
+                int totalSeats = resource.getRow() * resource.getCol();
+                int bookedSeats = reservationRepository.countSeatReservationsByTime(
+                        resource.getId(), dates[0], dates[1]);
+                isFullyBooked = (bookedSeats >= totalSeats);
+                timeInfo = dto.getDate() + " " + dto.getTime();
+                break;
+
+            case EVENT:
+                // 신청형: 총 인원 >= capacity
+                int currentCount = reservationRepository.countByResourcesIdAndDeletedAtIsNull(resource.getId()).size();
+                isFullyBooked = (currentCount >= resource.getCapacity());
+                break;
+        }
+
+        if (isFullyBooked) {
+            Long companyId = resource.getResourceGroup().getCompany().getId();
+            notificationService.sendNotificationToCompanyAdmins(
+                    NotificationType.RESOURCE_FULLY_BOOKED,
+                    companyId,
+                    resource.getName() + (timeInfo.isEmpty() ? "" : " (" + timeInfo + ")")
+            );
         }
     }
 
