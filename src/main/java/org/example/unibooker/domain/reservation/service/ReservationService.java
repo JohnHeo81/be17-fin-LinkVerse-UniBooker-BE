@@ -292,6 +292,7 @@ public class ReservationService {
 
 
     /** 예약 취소 */
+    @Transactional
     public void cancel(Long reservationId, Long userId) {
         // 사용자 존재 여부 체크
         Users user = userRepository.findById(userId).orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
@@ -304,22 +305,20 @@ public class ReservationService {
             throw new BaseException(BaseResponseStatus.RESERVATION_ALREADY_CANCELED);
         }
 
-        /*
-        // TODO : 취소하려는 예약이 사용자가 예약한 것인지 체크
-        if(user.getRole().equals(UserRole.USER)) {
-
-        }
-        */
-
         // 예약 상태 수정
         reservation.cancel();
-
-        // TODO : 리소스도 마감된 것을 풀어줄 것인지
-        // resourceStatusUpdate(reservation.getResources().getId());
 
         // 예상치 못한 경우 취소 실패하는 경우 예외처리
         try {
             reservationRepository.save(reservation);
+
+            // 예약 취소 알림 발송
+            notificationService.sendNotificationToUser(
+                    NotificationType.RESERVATION_CANCELLED,
+                    reservation.getUsers(),
+                    reservation.getResources().getName()
+            );
+
         } catch (Exception e) {
             throw new BaseException(BaseResponseStatus.RESERVATION_CANCEL_FAILED);
         }

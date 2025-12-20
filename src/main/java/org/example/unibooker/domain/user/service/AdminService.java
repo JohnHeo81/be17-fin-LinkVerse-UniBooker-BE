@@ -1121,7 +1121,14 @@ public class AdminService {
     }
 
     public ManagerDto.CreateResponse createManager(ManagerDto.CreateRequest request, Long currentUserId) {
-        return managerManagement.createManager(request, currentUserId);
+        ManagerDto.CreateResponse response = managerManagement.createManager(request, currentUserId);
+
+        // 매니저에게 계정 생성 알림 발송
+        Users manager = userRepository.findById(response.getManagerId())
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+        notificationService.sendNotificationToUser(NotificationType.MANAGER_CREATED, manager);
+
+        return response;
     }
 
     /**
@@ -1166,6 +1173,16 @@ public class AdminService {
      */
     public void updateAdminStatus(Long userId, AdminDto.AdminStatusUpdateRequest request) {
         managerManagement.updateAdminStatus(userId, request);
+
+        // 상태 변경 알림 발송
+        Users user = userRepository.findById(userId)
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
+
+        if (request.getStatus() == UserStatus.ACTIVE) {
+            notificationService.sendNotificationToUser(NotificationType.ACCOUNT_ACTIVATED, user);
+        } else if (request.getStatus() == UserStatus.SUSPENDED) {
+            notificationService.sendNotificationToUser(NotificationType.ACCOUNT_SUSPENDED, user);
+        }
     }
 
     /**

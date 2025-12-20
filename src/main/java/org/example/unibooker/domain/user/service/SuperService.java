@@ -6,7 +6,6 @@ import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.user.model.UserRole;
-import org.example.unibooker.domain.user.model.UserStatus;
 import org.example.unibooker.domain.user.model.dto.SuperDto;
 import org.example.unibooker.domain.user.model.dto.UserDto;
 import org.example.unibooker.domain.user.model.entity.Users;
@@ -74,41 +73,6 @@ public class SuperService {
 
         return SuperDto.CompanyManagerListResponse.builder()
                 .managers(managerInfos)
-                .build();
-    }
-
-    /**
-     * 관리자 상태 변경 (ACTIVE ↔ SUSPENDED)
-     */
-    @Transactional
-    public SuperDto.ManagerStatusUpdateResponse updateManagerStatus(Long userId, UserStatus newStatus) {
-        // 사용자 조회
-        Users user = userRepository.findById(userId)
-                .orElseThrow(() -> new BaseException(BaseResponseStatus.USER_NOT_FOUND));
-
-        // ADMIN 또는 MANAGER만 상태 변경 가능
-        if (user.getRole() != UserRole.ADMIN && user.getRole() != UserRole.MANAGER) {
-            throw new BaseException(BaseResponseStatus.INVALID_USER_ROLE);
-        }
-
-        // 상태 변경 (ACTIVE ↔ SUSPENDED만 허용)
-        if (newStatus == UserStatus.ACTIVE) {
-            user.activate();
-        } else if (newStatus == UserStatus.SUSPENDED) {
-            user.suspend();
-        } else {
-            throw new BaseException(BaseResponseStatus.INVALID_USER_STATUS);
-        }
-
-        userRepository.save(user);
-
-        String message = newStatus == UserStatus.ACTIVE ? "활성화되었습니다." : "정지되었습니다.";
-
-        return SuperDto.ManagerStatusUpdateResponse.builder()
-                .userId(user.getId())
-                .status(user.getStatus())
-                .message(message)
-                .updatedAt(user.getUpdatedAt())
                 .build();
     }
 }

@@ -5,6 +5,8 @@ import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
+import org.example.unibooker.domain.notification.model.NotificationType;
+import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.model.dto.UserDto;
@@ -39,6 +41,7 @@ public class UserService {
     private final JwtUtil jwtUtil;
     private final AuthService authService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     /**
      * 일반 사용자 회원가입 (기업별)
@@ -67,7 +70,7 @@ public class UserService {
         if (deletedUser.isPresent()) {
             // 3-1. 탈퇴 계정이 있으면 복구 및 정보 업데이트
             user = deletedUser.get();
-            user.restore(); // DELETED → ACTIVE 변경, deletedAt = null
+            user.restore();
             user.updatePassword(passwordEncoder.encode(request.getPassword()));
             user.updateName(request.getName());
             user.updatePhone(request.getPhone());
@@ -77,7 +80,7 @@ public class UserService {
             // 3-2. DELETED 아닌 상태에서 중복 확인
             validateDuplicateEmailInCompany(request.getEmail(), request.getCompanyId());
 
-// 3-3. 신규 사용자 생성 (정적 팩토리 메서드 사용)
+            // 3-3. 신규 사용자 생성
             user = Users.createWithCompany(
                     request.getEmail(),
                     passwordEncoder.encode(request.getPassword()),
@@ -91,6 +94,13 @@ public class UserService {
         }
 
         Users savedUser = userRepository.save(user);
+
+        // 회원가입 환영 알림 발송
+        notificationService.sendNotificationToUser(
+                NotificationType.WELCOME,
+                savedUser,
+                company.getCompanyName()
+        );
 
         return UserDto.SignUpResponse.builder()
                 .id(savedUser.getId())
@@ -274,6 +284,9 @@ public class UserService {
 
         // 비밀번호 변경 시 모든 Refresh Token 삭제 (보안 강화)
         authService.invalidateAllTokens(userId);
+
+        // 비밀번호 변경 알림 발송
+        notificationService.sendNotificationToUser(NotificationType.PASSWORD_CHANGED, user);
     }
 
     /**
