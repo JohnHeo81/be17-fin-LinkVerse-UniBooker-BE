@@ -17,7 +17,6 @@ import org.example.unibooker.domain.user.model.dto.AdminDto;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.dto.SuperDto;
 import org.example.unibooker.domain.user.model.dto.UserDto;
-import org.example.unibooker.domain.user.service.AdminService;
 import org.example.unibooker.domain.user.service.AuthService;
 import org.example.unibooker.domain.user.service.SuperService;
 import org.example.unibooker.utils.CookieUtil;
@@ -29,10 +28,11 @@ import java.util.List;
 
 /**
  * 슈퍼 관리자 컨트롤러
- * - 슈퍼 관리자 로그인/로그아웃만 처리
- * - 실제 관리 기능은 AdminController의 /api/admins 엔드포인트 사용
+ * - 슈퍼 관리자 로그인/로그아웃
+ * - 기업 승인/거절 관리
+ * - 관리자/매니저 상태 관리
  */
-@Tag(name = "Super API", description = "슈퍼 관리자 로그인/로그아웃 API")
+@Tag(name = "Super API", description = "슈퍼 관리자 API")
 @RestController
 @RequestMapping("/api/super")
 @RequiredArgsConstructor
@@ -40,15 +40,12 @@ public class SuperController {
 
     private final SuperService superService;
     private final AuthService authService;
-    private final AdminService adminService;
     private final CompanyService companyService;
 
     // ========== 슈퍼 관리자 로그인/로그아웃 ==========
 
     /**
      * 슈퍼 관리자 로그인
-     * - 단일 세션 정책: 기존 모든 역할의 쿠키 삭제 후 새 쿠키 생성
-     * - Access Token과 Refresh Token을 모두 HttpOnly Cookie에 저장
      */
     @Operation(summary = "슈퍼 관리자 로그인",
             description = "슈퍼 관리자 계정으로 로그인합니다. JWT 토큰이 HttpOnly 쿠키로 설정됩니다.")
@@ -57,13 +54,10 @@ public class SuperController {
             @RequestBody @Valid SuperDto.SuperLoginRequest request,
             HttpServletResponse response) {
 
-        // 1. 로그인 처리 (토큰 포함)
         UserDto.LoginResponseWithToken loginResponseWithToken = superService.superLogin(request);
 
-        // 2. 단일 세션 정책: 모든 역할의 기존 쿠키 삭제
         CookieUtil.deleteAllRolesCookies(response);
 
-        // 3. 현재 역할의 토큰을 HttpOnly Cookie에 저장
         response.addCookie(CookieUtil.createAccessTokenCookie(
                 loginResponseWithToken.getAccessToken(),
                 loginResponseWithToken.getRole()
@@ -73,14 +67,11 @@ public class SuperController {
                 loginResponseWithToken.getRole()
         ));
 
-        // 4. 클라이언트 응답 생성 (토큰 제외)
         return BaseResponse.success(loginResponseWithToken.toResponse());
     }
 
     /**
      * 슈퍼 관리자 로그아웃
-     * - Refresh Token 삭제
-     * - Access Token과 Refresh Token 쿠키 삭제
      */
     @Operation(summary = "슈퍼 관리자 로그아웃",
             description = "현재 로그인 세션을 종료하고 토큰을 삭제합니다.")
@@ -90,9 +81,7 @@ public class SuperController {
             @CookieValue(value = "superAccessToken", required = false) String accessToken,
             HttpServletResponse response) {
 
-        // Access Token 블랙리스트 등록 + Refresh Token 삭제
         AuthDto.LogoutResponse logoutResponse = authService.logout(authAdmin.getId(), accessToken);
-
         CookieUtil.deleteAllTokenCookies(response, authAdmin.getRole());
 
         return BaseResponse.success(logoutResponse);
@@ -108,7 +97,7 @@ public class SuperController {
     @PreAuthorize("hasRole('SUPER')")
     @GetMapping("/applications")
     public BaseResponse<List<CompanyDto.PendingResponse>> getPendingApplications() {
-        List<CompanyDto.PendingResponse> response = adminService.getPendingCompanies();
+        List<CompanyDto.PendingResponse> response = superService.getPendingCompanies();
         return BaseResponse.success(response);
     }
 
@@ -122,7 +111,7 @@ public class SuperController {
     public BaseResponse<CompanyDto.DetailResponse> getApplicationDetail(
             @PathVariable Long companyId) {
 
-        CompanyDto.DetailResponse response = adminService.getCompanyDetail(companyId);
+        CompanyDto.DetailResponse response = superService.getCompanyDetail(companyId);
         return BaseResponse.success(response);
     }
 
@@ -138,7 +127,7 @@ public class SuperController {
             @AuthenticationPrincipal AuthDto.AuthAdmin authAdmin) {
 
         CompanyDto.ApprovalResponse response =
-                adminService.approveCompany(companyId, authAdmin.getId());
+                superService.approveCompany(companyId, authAdmin.getId());
         return BaseResponse.success(response);
     }
 
@@ -154,14 +143,14 @@ public class SuperController {
             @RequestBody @Valid CompanyDto.ApprovalRequest request) {
 
         CompanyDto.ApprovalResponse response =
-                adminService.rejectCompany(companyId, request.getRejectionReason());
+                superService.rejectCompany(companyId, request.getRejectionReason());
         return BaseResponse.success(response);
     }
 
     // ========== 기업 관리 ==========
 
     /**
-     * 전체 기업 목록 조회 (페이징 + 필터링)
+     * 전체 기업 목록 조회
      */
     @Operation(summary = "전체 기업 목록 조회",
             description = "플랫폼의 전체 기업 목록을 조회합니다. (SUPER 권한 필요)")
@@ -189,7 +178,7 @@ public class SuperController {
     }
 
     /**
-     * 기업 상세 조회 (관리용)
+     * 기업 상세 조회
      */
     @Operation(summary = "기업 상세 조회",
             description = "특정 기업의 상세 정보를 조회합니다. (SUPER 권한 필요)")
@@ -198,12 +187,12 @@ public class SuperController {
     public BaseResponse<CompanyDto.DetailResponse> getCompanyDetail(
             @PathVariable Long companyId) {
 
-        CompanyDto.DetailResponse response = adminService.getCompanyDetail(companyId);
+        CompanyDto.DetailResponse response = superService.getCompanyDetail(companyId);
         return BaseResponse.success(response);
     }
 
     /**
-     * 기업 상태 변경 (ACTIVE ↔ SUSPENDED)
+     * 기업 상태 변경
      */
     @Operation(summary = "기업 상태 변경",
             description = "기업의 서비스 상태를 변경합니다. (SUPER 권한 필요)")
@@ -249,7 +238,6 @@ public class SuperController {
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String status) {
 
-        // String → Enum 변환
         UserRole userRole = null;
         if (role != null && !role.isBlank()) {
             try {
@@ -269,7 +257,7 @@ public class SuperController {
         }
 
         AdminDto.AdminListResponse response =
-                adminService.getAllAdmins(page, size, userRole, userStatus);
+                superService.getAllAdmins(page, size, userRole, userStatus);
         return BaseResponse.success(response);
     }
 
@@ -284,7 +272,7 @@ public class SuperController {
             @PathVariable Long userId,
             @RequestBody @Valid AdminDto.AdminStatusUpdateRequest request) {
 
-        adminService.updateAdminStatus(userId, request);
+        superService.updateAdminStatus(userId, request);
         return BaseResponse.success("계정 상태가 성공적으로 변경되었습니다.");
     }
 }

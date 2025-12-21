@@ -313,4 +313,46 @@ public class AuthService {
         tokenStorageService.deleteAllRefreshTokens(userId);
         log.info("모든 Refresh Token 삭제 - userId: {}", userId);
     }
+
+    // ========== 비밀번호 유틸 ==========
+
+    private static final String CHAR_LOWER = "abcdefghijklmnopqrstuvwxyz";
+    private static final String CHAR_UPPER = CHAR_LOWER.toUpperCase();
+    private static final String NUMBER = "0123456789";
+    private static final String SPECIAL_CHAR = "@$!%*#?&";
+    private static final String PASSWORD_CHARS = CHAR_LOWER + CHAR_UPPER + NUMBER + SPECIAL_CHAR;
+    private static final int TEMP_PASSWORD_LENGTH = 8;
+
+    /**
+     * 임시 비밀번호 생성
+     */
+    public String generateTemporaryPassword() {
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+
+        password.append(CHAR_LOWER.charAt(random.nextInt(CHAR_LOWER.length())));
+        password.append(CHAR_UPPER.charAt(random.nextInt(CHAR_UPPER.length())));
+        password.append(NUMBER.charAt(random.nextInt(NUMBER.length())));
+        password.append(SPECIAL_CHAR.charAt(random.nextInt(SPECIAL_CHAR.length())));
+
+        for (int i = 4; i < TEMP_PASSWORD_LENGTH; i++) {
+            password.append(PASSWORD_CHARS.charAt(random.nextInt(PASSWORD_CHARS.length())));
+        }
+
+        return shuffleString(password.toString(), random);
+    }
+
+    /**
+     * 문자열 무작위 섞기
+     */
+    private String shuffleString(String input, java.security.SecureRandom random) {
+        char[] characters = input.toCharArray();
+        for (int i = characters.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char temp = characters[i];
+            characters[i] = characters[j];
+            characters[j] = temp;
+        }
+        return new String(characters);
+    }
 }

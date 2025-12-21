@@ -2,10 +2,8 @@ package org.example.unibooker.domain.user.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.Cookie;
 import jakarta.validation.constraints.NotBlank;
 import org.example.unibooker.domain.user.service.AuthService;
-import org.example.unibooker.domain.user.service.SuperService;
 import org.example.unibooker.utils.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -16,8 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponse;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
-import org.example.unibooker.domain.user.model.UserRole;
-import org.example.unibooker.domain.user.model.UserStatus;
 import org.example.unibooker.domain.user.model.dto.AdminDto;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.dto.ManagerDto;
@@ -27,7 +23,6 @@ import org.example.unibooker.domain.user.service.UserService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 관리자 및 매니저 관리 컨트롤러
@@ -45,7 +40,6 @@ public class AdminController {
     private final AdminService adminService;
     private final UserService userService;
     private final AuthService authService;
-    private final SuperService superService;
 
     // ========== 관리자 본인 관리 ==========
 

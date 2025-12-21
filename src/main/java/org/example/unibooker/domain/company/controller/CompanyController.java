@@ -3,37 +3,29 @@ package org.example.unibooker.domain.company.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponse;
-import org.example.unibooker.common.BaseResponseStatus;
-import org.example.unibooker.common.exception.BaseException;
-import org.example.unibooker.domain.company.model.CompanyStatus;
 import org.example.unibooker.domain.company.model.dto.CompanyDto;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.company.service.CompanyService;
-import org.example.unibooker.domain.user.model.dto.SuperDto;
-import org.example.unibooker.domain.user.service.AdminService;
-import org.example.unibooker.domain.user.service.SuperService;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
+/**
+ * 기업 공개 API
+ * - Slug/사업자번호 중복 확인 (회원가입용)
+ * - Slug로 기업 공개 정보 조회 (일반 사용자용)
+ */
 @Slf4j
-@Tag(name = "Company API", description = "기업 관리 API (슈퍼 관리자 전용)")
+@Tag(name = "Company API", description = "기업 공개 API")
 @RestController
 @RequestMapping("/api/companies")
 @RequiredArgsConstructor
 public class CompanyController {
 
-    private final AdminService adminService;
     private final CompanyRepository companyRepository;
     private final CompanyService companyService;
-    private final SuperService superService;
 
     @Operation(summary = "Company Slug 중복 확인",
             description = "회원가입 시 사용할 Company Slug의 사용 가능 여부를 확인합니다.")
@@ -57,15 +49,6 @@ public class CompanyController {
         return BaseResponse.success(exists);
     }
 
-    @Operation(summary = "기업 상세 조회", description = "특정 기업의 상세 정보를 조회합니다.")
-    @GetMapping("/{companyId}")
-    public BaseResponse<CompanyDto.DetailResponse> getCompanyDetail(
-            @PathVariable Long companyId) {
-
-        CompanyDto.DetailResponse response = adminService.getCompanyDetail(companyId);
-        return BaseResponse.success(response);
-    }
-
     /**
      * Company Slug로 기업 정보 조회 (일반 사용자용)
      */
@@ -76,66 +59,6 @@ public class CompanyController {
             @PathVariable @Schema(description = "Company Slug", example = "company-a") String companySlug) {
 
         CompanyDto.PublicInfoResponse response = companyService.getCompanyBySlug(companySlug);
-        return BaseResponse.success(response);
-    }
-
-    /**
-     * 전체 기업 목록 조회 (페이징 + 필터링)
-     */
-    @Operation(summary = "전체 기업 목록 조회",
-            description = "플랫폼의 전체 기업 목록을 조회합니다. (SUPER 권한 필요)")
-    @PreAuthorize("hasRole('SUPER')")
-    @GetMapping
-    public BaseResponse<CompanyDto.CompanyListResponse> getAllCompanies(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String keyword) {
-
-        CompanyStatus companyStatus = null;
-        if (status != null && !status.isBlank()) {
-            try {
-                companyStatus = CompanyStatus.valueOf(status.toUpperCase());
-            } catch (IllegalArgumentException e) {
-                throw new BaseException(
-                        BaseResponseStatus.INVALID_COMPANY_STATUS);
-            }
-        }
-
-        CompanyDto.CompanyListResponse response =
-                companyService.getAllCompanies(page, size, companyStatus, keyword);
-
-        return BaseResponse.success(response);
-    }
-
-    /**
-     * 기업 상태 변경 (ACTIVE ↔ SUSPENDED)
-     */
-    @Operation(summary = "기업 상태 변경",
-            description = "기업의 서비스 상태를 변경합니다. (SUPER 권한 필요)")
-    @PreAuthorize("hasRole('SUPER')")
-    @PatchMapping("/{companyId}/status")
-    public BaseResponse<CompanyDto.StatusUpdateResponse> updateCompanyStatus(
-            @PathVariable Long companyId,
-            @RequestBody @Valid CompanyDto.StatusUpdateRequest request) {
-
-        CompanyDto.StatusUpdateResponse response =
-                companyService.updateCompanyStatus(companyId, request.getStatus());
-
-        return BaseResponse.success(response);
-    }
-
-    /**
-     * 특정 기업의 관리자 목록 조회
-     */
-    @Operation(summary = "기업 관리자 목록 조회",
-            description = "특정 기업의 관리자(ADMIN, MANAGER) 목록을 조회합니다. (SUPER 권한 필요)")
-    @PreAuthorize("hasRole('SUPER')")
-    @GetMapping("/{companyId}/managers")
-    public BaseResponse<SuperDto.CompanyManagerListResponse> getCompanyManagers(
-            @PathVariable Long companyId) {
-
-        SuperDto.CompanyManagerListResponse response = superService.getCompanyManagers(companyId);
         return BaseResponse.success(response);
     }
 }
