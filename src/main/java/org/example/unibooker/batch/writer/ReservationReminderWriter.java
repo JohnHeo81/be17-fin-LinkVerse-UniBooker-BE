@@ -3,12 +3,11 @@ package org.example.unibooker.batch.writer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.batch.reader.ReservationReminderReader.ReminderItem;
-import org.example.unibooker.domain.notification.model.NotificationType;
 import org.example.unibooker.domain.notification.model.ReminderType;
 import org.example.unibooker.domain.notification.model.entity.ReminderLog;
 import org.example.unibooker.domain.notification.repository.ReminderLogRepository;
-import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
+import org.example.unibooker.infrastructure.email.EmailService;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.stereotype.Component;
@@ -25,8 +24,8 @@ import java.time.format.DateTimeFormatter;
 @RequiredArgsConstructor
 public class ReservationReminderWriter implements ItemWriter<ReminderItem> {
 
-    private final NotificationService notificationService;
     private final ReminderLogRepository reminderLogRepository;
+    private final EmailService emailService;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("MM월 dd일 HH:mm");
 
@@ -37,18 +36,16 @@ public class ReservationReminderWriter implements ItemWriter<ReminderItem> {
             ReminderType type = item.type();
 
             try {
-                // 알림 타입 결정
-                NotificationType notificationType = (type == ReminderType.HOUR_1)
-                        ? NotificationType.RESERVATION_REMINDER_1H
-                        : NotificationType.RESERVATION_REMINDER_24H;
-
-                // 알림 발송
                 String timeInfo = reservation.getStartDate().format(DATE_FORMAT);
-                notificationService.sendNotificationToUser(
-                        notificationType,
-                        reservation.getUsers(),
+                String reminderType = (type == ReminderType.HOUR_1) ? "1H" : "24H";
+
+                // 이메일 발송
+                emailService.sendReservationReminderEmail(
+                        reservation.getUsers().getEmail(),
+                        reservation.getUsers().getName(),
                         reservation.getResources().getName(),
-                        timeInfo
+                        timeInfo,
+                        reminderType
                 );
 
                 // 발송 로그 저장

@@ -7,14 +7,12 @@ import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
 import org.example.unibooker.domain.notification.model.NotificationType;
 import org.example.unibooker.domain.notification.service.NotificationService;
-import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.model.dto.UserDto;
 import org.example.unibooker.domain.user.model.UserRole;
 import org.example.unibooker.domain.user.model.UserStatus;
 import org.example.unibooker.domain.user.repository.UserRepository;
 import org.example.unibooker.infrastructure.email.EmailService;
-import org.example.unibooker.utils.JwtUtil;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,7 +36,6 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final CompanyRepository companyRepository;
-    private final JwtUtil jwtUtil;
     private final AuthService authService;
     private final EmailService emailService;
     private final NotificationService notificationService;
@@ -95,8 +92,8 @@ public class UserService {
 
         Users savedUser = userRepository.save(user);
 
-        // 회원가입 환영 알림 발송
-        notificationService.sendNotificationToUser(
+        // 회원가입 환영 알림 저장
+        notificationService.saveNotification(
                 NotificationType.WELCOME,
                 savedUser,
                 company.getCompanyName()
@@ -285,8 +282,8 @@ public class UserService {
         // 비밀번호 변경 시 모든 Refresh Token 삭제 (보안 강화)
         authService.invalidateAllTokens(userId);
 
-        // 비밀번호 변경 알림 발송
-        notificationService.sendNotificationToUser(NotificationType.PASSWORD_CHANGED, user);
+        // 비밀번호 변경 알림 저장
+        notificationService.saveNotification(NotificationType.PASSWORD_CHANGED, user);
     }
 
     /**

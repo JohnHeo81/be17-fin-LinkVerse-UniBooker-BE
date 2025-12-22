@@ -36,9 +36,9 @@ public class ReservationService {
 
     // service
     private final CustomFieldValueService customFieldValueService;
-    private final NotificationService notificationService;
     private final HoldService holdService;
     private final HoldWebSocketService holdWebSocketService;
+    private final NotificationService notificationService;
 
     //repository
     private final ReservationRepository reservationRepository;
@@ -163,16 +163,6 @@ public class ReservationService {
                     .map(value -> CustomFieldDto.CustomFieldValueListRes.fromUserEntity((UserCustomFieldValues) value))
                     .collect(Collectors.toList());
 
-            // 예약 확정 알림 발송
-            notificationService.sendNotificationToUser(
-                    NotificationType.RESERVATION_CONFIRMED,
-                    user,
-                    resource.getName()
-            );
-
-            // 마감 체크 및 관리자 알림
-            checkAndNotifyFullyBooked(resource, dates, dto);
-
             // 예약 성공 시 Hold 삭제
             holdService.clearHoldOnReservation(
                     resourceId,
@@ -190,6 +180,13 @@ public class ReservationService {
                     dto.getTime() != null ? dto.getTime().format(DateTimeFormatter.ofPattern("HH:mm")) : null,
                     dto.getRow(),
                     dto.getCol()
+            );
+
+            // 예약 확정 알림 저장
+            notificationService.saveNotification(
+                    NotificationType.RESERVATION_CONFIRMED,
+                    user,
+                    resource.getName()
             );
 
             log.info("[Reservation] 예약 완료 - reservationId: {}, lockKey: {}", reservation.getId(), lockKey);
@@ -212,46 +209,6 @@ public class ReservationService {
                 lock.unlock();
                 log.info("[Reservation] 락 해제 - lockKey: {}", lockKey);
             }
-        }
-    }
-
-    /**
-     * 예약 마감 체크 및 관리자 알림
-     */
-    private void checkAndNotifyFullyBooked(Resources resource, LocalDateTime[] dates, ReservationDto.Request dto) {
-        boolean isFullyBooked = false;
-        String timeInfo = "";
-
-        switch (resource.getResourceGroup().getCategory()) {
-            case RESERVATION:
-                // 예약형: 해당 시간대 1건 = 풀부킹
-                isFullyBooked = true;
-                timeInfo = dto.getDate() + " " + dto.getTime();
-                break;
-
-            case SEAT:
-                // 좌석형: 해당 시간대 모든 좌석 예약 완료
-                int totalSeats = resource.getRow() * resource.getCol();
-                int bookedSeats = reservationRepository.countSeatReservationsByTime(
-                        resource.getId(), dates[0], dates[1]);
-                isFullyBooked = (bookedSeats >= totalSeats);
-                timeInfo = dto.getDate() + " " + dto.getTime();
-                break;
-
-            case EVENT:
-                // 신청형: 총 인원 >= capacity
-                int currentCount = reservationRepository.countByResourcesIdAndDeletedAtIsNull(resource.getId()).size();
-                isFullyBooked = (currentCount >= resource.getCapacity());
-                break;
-        }
-
-        if (isFullyBooked) {
-            Long companyId = resource.getResourceGroup().getCompany().getId();
-            notificationService.sendNotificationToCompanyAdmins(
-                    NotificationType.RESOURCE_FULLY_BOOKED,
-                    companyId,
-                    resource.getName() + (timeInfo.isEmpty() ? "" : " (" + timeInfo + ")")
-            );
         }
     }
 
@@ -355,8 +312,8 @@ public class ReservationService {
         try {
             reservationRepository.save(reservation);
 
-            // 예약 취소 알림 발송
-            notificationService.sendNotificationToUser(
+            // 예약 취소 알림 저장
+            notificationService.saveNotification(
                     NotificationType.RESERVATION_CANCELLED,
                     reservation.getUsers(),
                     reservation.getResources().getName()

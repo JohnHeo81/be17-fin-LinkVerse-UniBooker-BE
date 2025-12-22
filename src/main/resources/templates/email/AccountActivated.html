@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계정 활성화 안내</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', 'Malgun Gothic', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header .logo { font-size: 48px; margin-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 600; }
+        .content { padding: 40px 30px; }
+        .greeting {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .content p { margin-bottom: 15px; color: #555; line-height: 1.8; }
+        .activated-box {
+            background: linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%);
+            border-left: 4px solid #28a745;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .activated-box .icon { font-size: 48px; margin-bottom: 10px; }
+        .activated-box .title {
+            font-size: 22px;
+            font-weight: bold;
+            color: #155724;
+            margin-bottom: 10px;
+        }
+        .activated-box .message { font-size: 16px; color: #155724; }
+        .button-container { text-align: center; margin: 40px 0; }
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white !important;
+            padding: 16px 50px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
+        }
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #dee2e6;
+        }
+        .footer .contact p { margin: 5px 0; color: #666; font-size: 14px; }
+        .footer .copyright {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <div class="header">
+        <div class="logo">✅</div>
+        <h1>UniBooker</h1>
+    </div>
+    <div class="content">
+        <div class="greeting">
+            안녕하세요, <strong th:text="${name}">홍길동</strong>님 👋
+        </div>
+        <div class="activated-box">
+            <div class="icon">🎉</div>
+            <div class="title">계정이 활성화되었습니다!</div>
+            <div class="message">
+                <strong th:text="${companyName}">회사명</strong>의 계정이 정상적으로 활성화되었습니다.
+            </div>
+        </div>
+        <p>이제 UniBooker 서비스를 정상적으로 이용하실 수 있습니다.</p>
+        <div class="button-container">
+            <a th:href="${loginUrl}" class="button">로그인하기 →</a>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="contact">
+            <p><strong>문의사항이 있으신가요?</strong></p>
+            <p>📧 이메일: support@unibooker.com</p>
+            <p>📞 전화: 1234-5678</p>
+        </div>
+        <div class="copyright">© 2025 UniBooker. All rights reserved.</div>
+    </div>
+</div>
+</body>
+</html>

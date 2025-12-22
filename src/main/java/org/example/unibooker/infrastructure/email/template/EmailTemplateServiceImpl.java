@@ -101,4 +101,35 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
 
         return renderTemplate("email/CompanyRejection", variables);
     }
+
+    @Override
+    public String renderAccountSuspendedTemplate(String name, String companyName, String reason) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("companyName", companyName);
+        variables.put("reason", reason != null ? reason : "관리자에 의해 계정이 정지되었습니다.");
+
+        return renderTemplate("email/AccountSuspended", variables);
+    }
+
+    @Override
+    public String renderAccountActivatedTemplate(String name, String companyName) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("companyName", companyName);
+        variables.put("loginUrl", loginUrl);
+
+        return renderTemplate("email/AccountActivated", variables);
+    }
+
+    @Override
+    public String renderReservationReminderTemplate(String name, String resourceName, String dateTime, String reminderType) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("resourceName", resourceName);
+        variables.put("dateTime", dateTime);
+        variables.put("reminderType", reminderType);
+
+        return renderTemplate("email/ReservationReminder", variables);
+    }
 }

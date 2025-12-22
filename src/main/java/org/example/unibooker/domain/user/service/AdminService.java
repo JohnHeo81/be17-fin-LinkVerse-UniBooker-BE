@@ -121,8 +121,8 @@ public class AdminService {
 
         userRepository.save(admin);
 
-        // SUPER 관리자에게 신규 신청 알림
-        notificationService.sendNotificationToRole(NotificationType.NEW_COMPANY_REQUEST, UserRole.SUPER);
+        // SUPER 관리자에게 신규 신청 알림 저장
+        notificationService.saveNotificationToRole(NotificationType.NEW_COMPANY_REQUEST, UserRole.SUPER);
 
         return AdminDto.SignUpResponse.builder()
                 .message("관리자 회원가입 신청이 완료되었습니다. 승인까지 최대 " + ESTIMATED_APPROVAL_DAYS + "일이 소요될 수 있습니다.")
@@ -193,11 +193,6 @@ public class AdminService {
         user.updatePassword(encodedPassword);
 
         if (user.getIsFirstLogin()) {
-            notificationService.sendNotificationToUser(
-                    NotificationType.COMPANY_APPROVED,
-                    user,
-                    user.getCompany().getCompanyName()
-            );
             user.completeFirstLogin();
         }
 
@@ -301,9 +296,6 @@ public class AdminService {
         } catch (Exception e) {
             throw new BaseException(BaseResponseStatus.EMAIL_SEND_FAILED);
         }
-
-        // 6. 알림 발송
-        notificationService.sendNotificationToUser(NotificationType.MANAGER_CREATED, manager);
 
         return ManagerDto.CreateResponse.builder()
                 .message("매니저 계정이 성공적으로 생성되었습니다. 이메일을 확인해주세요.")

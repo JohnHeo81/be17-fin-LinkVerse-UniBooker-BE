@@ -66,4 +66,34 @@ public interface EmailTemplateService {
             LocalDateTime appliedDate,
             String rejectionReason
     );
+
+    /**
+     * 계정 정지 이메일 템플릿 렌더링
+     *
+     * @param name 사용자 이름
+     * @param companyName 회사명
+     * @param reason 정지 사유 (nullable)
+     * @return 렌더링된 HTML 문자열
+     */
+    String renderAccountSuspendedTemplate(String name, String companyName, String reason);
+
+    /**
+     * 계정 활성화 이메일 템플릿 렌더링
+     *
+     * @param name 사용자 이름
+     * @param companyName 회사명
+     * @return 렌더링된 HTML 문자열
+     */
+    String renderAccountActivatedTemplate(String name, String companyName);
+
+    /**
+     * 예약 리마인더 이메일 템플릿 렌더링
+     *
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param dateTime 예약 일시 (포맷팅된 문자열)
+     * @param reminderType 리마인더 타입 (1H / 24H)
+     * @return 렌더링된 HTML 문자열
+     */
+    String renderReservationReminderTemplate(String name, String resourceName, String dateTime, String reminderType);
 }

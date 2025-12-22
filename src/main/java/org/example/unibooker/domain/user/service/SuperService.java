@@ -8,8 +8,6 @@ import org.example.unibooker.domain.company.model.CompanyStatus;
 import org.example.unibooker.domain.company.model.dto.CompanyDto;
 import org.example.unibooker.domain.company.model.entity.Companies;
 import org.example.unibooker.domain.company.repository.CompanyRepository;
-import org.example.unibooker.domain.notification.model.NotificationType;
-import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.resource.repository.ResourceGroupRepository;
 import org.example.unibooker.domain.user.model.UserRole;
 import org.example.unibooker.domain.user.model.UserStatus;
@@ -50,7 +48,6 @@ public class SuperService {
     private final ResourceGroupRepository resourceGroupRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private final NotificationService notificationService;
 
     @Value("${app.base-url:http://localhost:5173}")
     private String baseUrl;
@@ -336,11 +333,12 @@ public class SuperService {
 
         userRepository.save(user);
 
-        // 4. 알림 발송
+        // 4. 이메일 발송
+        String companyName = user.getCompany() != null ? user.getCompany().getCompanyName() : "UniBooker";
         if (request.getStatus() == UserStatus.ACTIVE) {
-            notificationService.sendNotificationToUser(NotificationType.ACCOUNT_ACTIVATED, user);
+            emailService.sendAccountActivatedEmail(user.getEmail(), user.getName(), companyName);
         } else if (request.getStatus() == UserStatus.SUSPENDED) {
-            notificationService.sendNotificationToUser(NotificationType.ACCOUNT_SUSPENDED, user);
+            emailService.sendAccountSuspendedEmail(user.getEmail(), user.getName(), companyName, null);
         }
 
         log.info("관리자 상태 변경 - userId: {}, newStatus: {}", userId, request.getStatus());

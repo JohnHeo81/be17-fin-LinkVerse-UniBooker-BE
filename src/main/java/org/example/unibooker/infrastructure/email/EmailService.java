@@ -77,4 +77,34 @@ public interface EmailService {
             LocalDateTime appliedDate,
             String rejectionReason
     );
+
+    /**
+     * 계정 정지 이메일 발송
+     *
+     * @param to 수신자 이메일
+     * @param name 사용자 이름
+     * @param companyName 회사명
+     * @param reason 정지 사유 (nullable)
+     */
+    void sendAccountSuspendedEmail(String to, String name, String companyName, String reason);
+
+    /**
+     * 계정 활성화 이메일 발송
+     *
+     * @param to 수신자 이메일
+     * @param name 사용자 이름
+     * @param companyName 회사명
+     */
+    void sendAccountActivatedEmail(String to, String name, String companyName);
+
+    /**
+     * 예약 리마인더 이메일 발송
+     *
+     * @param to 수신자 이메일
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param dateTime 예약 일시 (포맷팅된 문자열)
+     * @param reminderType 리마인더 타입 ("1H" / "24H")
+     */
+    void sendReservationReminderEmail(String to, String name, String resourceName, String dateTime, String reminderType);
 }

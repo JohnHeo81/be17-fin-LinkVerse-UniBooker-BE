@@ -24,7 +24,7 @@ import java.time.LocalDateTime;
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
-    private final EmailTemplateService templateService;
+    private final EmailTemplateService emailTemplateService;
 
     @Value("${app.mail.from}")
     private String fromEmail;
@@ -54,7 +54,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendManagerCreationEmail(String to, String name, String companyName, String tempPassword) {
-        String htmlContent = templateService.renderManagerCreationTemplate(name, companyName, tempPassword);
+        String htmlContent = emailTemplateService.renderManagerCreationTemplate(name, companyName, tempPassword);
         String subject = "[UniBooker] 매니저 계정이 생성되었습니다";
 
         sendHtmlEmail(to, subject, htmlContent);
@@ -62,7 +62,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendAdminApprovalEmail(String to, String name, String companyName, String tempPassword, String serviceUrl) {
-        String htmlContent = templateService.renderAdminApprovalTemplate(name, companyName, tempPassword, serviceUrl);
+        String htmlContent = emailTemplateService.renderAdminApprovalTemplate(name, companyName, tempPassword, serviceUrl);
         String subject = "[UniBooker] 기업 가입이 승인되었습니다";
 
         sendHtmlEmail(to, subject, htmlContent);
@@ -70,7 +70,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendPasswordResetEmail(String to, String name, String companyName, String tempPassword) {
-        String htmlContent = templateService.renderPasswordResetTemplate(name, companyName, tempPassword);
+        String htmlContent = emailTemplateService.renderPasswordResetTemplate(name, companyName, tempPassword);
         String subject = "[UniBooker] 임시 비밀번호가 발급되었습니다";
 
         sendHtmlEmail(to, subject, htmlContent);
@@ -78,7 +78,7 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendAccountDeletionNotice(String to, String name, UserRole role) {
-        String htmlContent = templateService.renderAccountDeletionTemplate(name, role);
+        String htmlContent = emailTemplateService.renderAccountDeletionTemplate(name, role);
         String subject = "[UniBooker] 계정이 삭제되었습니다";
 
         sendHtmlEmail(to, subject, htmlContent);
@@ -93,7 +93,7 @@ public class EmailServiceImpl implements EmailService {
             LocalDateTime appliedDate,
             String rejectionReason) {
 
-        String htmlContent = templateService.renderCompanyRejectionTemplate(
+        String htmlContent = emailTemplateService.renderCompanyRejectionTemplate(
                 name,
                 companyName,
                 businessNumber,
@@ -102,6 +102,29 @@ public class EmailServiceImpl implements EmailService {
         );
         String subject = "[UniBooker] 기업 가입 신청이 거절되었습니다";
 
+        sendHtmlEmail(to, subject, htmlContent);
+    }
+
+    @Override
+    public void sendAccountSuspendedEmail(String to, String name, String companyName, String reason) {
+        String subject = "[UniBooker] 계정 정지 안내";
+        String htmlContent = emailTemplateService.renderAccountSuspendedTemplate(name, companyName, reason);
+        sendHtmlEmail(to, subject, htmlContent);
+    }
+
+    @Override
+    public void sendAccountActivatedEmail(String to, String name, String companyName) {
+        String subject = "[UniBooker] 계정 활성화 안내";
+        String htmlContent = emailTemplateService.renderAccountActivatedTemplate(name, companyName);
+        sendHtmlEmail(to, subject, htmlContent);
+    }
+
+    @Override
+    public void sendReservationReminderEmail(String to, String name, String resourceName, String dateTime, String reminderType) {
+        String subject = reminderType.equals("1H")
+                ? "[UniBooker] 예약 1시간 전 알림"
+                : "[UniBooker] 예약 24시간 전 알림";
+        String htmlContent = emailTemplateService.renderReservationReminderTemplate(name, resourceName, dateTime, reminderType);
         sendHtmlEmail(to, subject, htmlContent);
     }
 }
