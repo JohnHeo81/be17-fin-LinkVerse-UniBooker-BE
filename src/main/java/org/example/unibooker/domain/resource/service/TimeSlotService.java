@@ -1,9 +1,7 @@
 package org.example.unibooker.domain.resource.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.unibooker.domain.resource.model.entity.DayOfWeek;
-import org.example.unibooker.domain.resource.model.entity.ResourceTimeSlotExceptions;
-import org.example.unibooker.domain.resource.model.entity.ResourceTimeSlots;
+import org.example.unibooker.domain.resource.model.entity.*;
 import org.example.unibooker.domain.resource.model.dto.TimeSlotDto;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
 import org.example.unibooker.domain.resource.repository.ResourceTimeSlotExceptionRepository;
@@ -100,9 +98,15 @@ public class TimeSlotService {
         if (pageEnd.isAfter(monthEnd)) pageEnd = monthEnd;
 
         // 리소스 단위 시간 간격 조회
-        int intervalMinutes = resourceRepository.findById(resourceId)
-                .orElseThrow(() -> new IllegalArgumentException("Resource not found"))
-                .getTimeInterval();
+        Resources resource = resourceRepository.findById(resourceId)
+                .orElseThrow(() -> new IllegalArgumentException("Resource not found"));
+
+        // 카테고리 확인 (좌석형 여부)
+        ServiceCategory category = resource.getResourceGroup().getCategory();
+        boolean isSeatType = category == ServiceCategory.SEAT;
+
+        // interval: 좌석형은 무시(0), 예약형은 기본값 60
+        int intervalMinutes = isSeatType ? 0 : (resource.getTimeInterval() > 0 ? resource.getTimeInterval() : 60);
 
         // 정규 시간 슬롯 전체 조회 (DayOfWeek 기준)
         Map<DayOfWeek, List<ResourceTimeSlots>> regularSlots = new HashMap<>();
@@ -133,9 +137,51 @@ public class TimeSlotService {
                         slots.clear();
                         break;
                     } else {
-                        // 예외 시간 슬롯을 interval 단위로 쪼개서 추가
-                        LocalTime start = ex.getStartTime();
-                        LocalTime end = ex.getEndTime();
+                        if (isSeatType) {
+                            // 좌석형: 시작~종료 전체를 1개 슬롯으로
+                            slots.add(TimeSlotDto.TimeSlotResponse.fromEntity(
+                                    ResourceTimeSlots.builder()
+                                            .dayOfWeek(dayOfWeek)
+                                            .startTime(ex.getStartTime())
+                                            .endTime(ex.getEndTime())
+                                            .build()
+                            ));
+                        } else {
+                            // 예약형: interval 단위로 분할
+                            LocalTime start = ex.getStartTime();
+                            LocalTime end = ex.getEndTime();
+                            while (start.isBefore(end)) {
+                                LocalTime slotEnd = start.plusMinutes(intervalMinutes);
+                                if (slotEnd.isAfter(end)) slotEnd = end;
+                                slots.add(TimeSlotDto.TimeSlotResponse.fromEntity(
+                                        ResourceTimeSlots.builder()
+                                                .dayOfWeek(dayOfWeek)
+                                                .startTime(start)
+                                                .endTime(slotEnd)
+                                                .build()
+                                ));
+                                start = slotEnd;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // -------------------- 정규 슬롯 적용 --------------------
+                List<ResourceTimeSlots> dailySlots = regularSlots.getOrDefault(dayOfWeek, Collections.emptyList());
+                for (ResourceTimeSlots slot : dailySlots) {
+                    if (isSeatType) {
+                        // 좌석형: 시작~종료 전체를 1개 슬롯으로
+                        slots.add(TimeSlotDto.TimeSlotResponse.fromEntity(
+                                ResourceTimeSlots.builder()
+                                        .dayOfWeek(dayOfWeek)
+                                        .startTime(slot.getStartTime())
+                                        .endTime(slot.getEndTime())
+                                        .build()
+                        ));
+                    } else {
+                        // 예약형: interval 단위로 분할
+                        LocalTime start = slot.getStartTime();
+                        LocalTime end = slot.getEndTime();
                         while (start.isBefore(end)) {
                             LocalTime slotEnd = start.plusMinutes(intervalMinutes);
                             if (slotEnd.isAfter(end)) slotEnd = end;
@@ -148,25 +194,6 @@ public class TimeSlotService {
                             ));
                             start = slotEnd;
                         }
-                    }
-                }
-            } else {
-                // -------------------- 정규 슬롯 적용 --------------------
-                List<ResourceTimeSlots> dailySlots = regularSlots.getOrDefault(dayOfWeek, Collections.emptyList());
-                for (ResourceTimeSlots slot : dailySlots) {
-                    LocalTime start = slot.getStartTime();
-                    LocalTime end = slot.getEndTime();
-                    while (start.isBefore(end)) {
-                        LocalTime slotEnd = start.plusMinutes(intervalMinutes);
-                        if (slotEnd.isAfter(end)) slotEnd = end;
-                        slots.add(TimeSlotDto.TimeSlotResponse.fromEntity(
-                                ResourceTimeSlots.builder()
-                                        .dayOfWeek(dayOfWeek)
-                                        .startTime(start)
-                                        .endTime(slotEnd)
-                                        .build()
-                        ));
-                        start = slotEnd;
                     }
                 }
             }
