@@ -46,10 +46,8 @@ public class ResourceDto {
         @Schema(description = "종료 날짜", example = "2025.10.18", nullable = true)
         private LocalDate endDate;
 
-        @Min(value = 30, message = "시간 간격은 최소 30분입니다.")
-        @Max(value = 60, message = "시간 간격은 최대 60분입니다.")
         @Schema(description = "시간 간격", example = "30 또는 60", nullable = true)
-        private int timeInterval;
+        private Integer timeInterval;
 
         @Positive(message = "인원수는 1명 이상이어야 합니다.")
         @Schema(description = "인원수", example = "4", nullable = true)
@@ -83,7 +81,7 @@ public class ResourceDto {
                 throw new IllegalArgumentException("종료일은 시작일보다 빠를 수 없습니다.");
             }
             // 시간 간격 검증
-            if (timeInterval != 30 && timeInterval != 60) {
+            if (timeInterval != null && timeInterval != 30 && timeInterval != 60) {
                 throw new IllegalArgumentException("timeInterval은 30 또는 60만 가능합니다.");
             }
         }
@@ -252,10 +250,8 @@ public class ResourceDto {
         @Schema(description = "종료 시간", example = "19:00", nullable = true)
         private LocalTime endTime;
 
-        @Min(value = 30, message = "시간 간격은 최소 30분입니다.")
-        @Max(value = 60, message = "시간 간격은 최대 60분입니다.")
         @Schema(description = "시간 간격", example = "30 또는 60", nullable = true)
-        private int timeInterval;
+        private Integer timeInterval;
 
         @Positive(message = "인원수는 1명 이상이어야 합니다.")
         @Schema(description = "인원수", example = "4", nullable = true)
