@@ -53,50 +53,72 @@ public class ResourceService {
 
         // 시간 슬롯 생성
         if (group.getCategory() != ServiceCategory.EVENT) {
-            int intervalMinutes = dto.getTimeInterval();
-            int slotsPerDay = (24 * 60) / intervalMinutes;
 
-            for (DayOfWeek day : DayOfWeek.values()) {
-                for (int i = 0; i < slotsPerDay; i++) {
-                    LocalTime slotStart = LocalTime.of(0, 0).plusMinutes((long) i * intervalMinutes);
-                    LocalTime slotEnd = slotStart.plusMinutes(intervalMinutes);
-
-                    if (slotEnd.equals(LocalTime.MIDNIGHT)) {
-                        slotEnd = LocalTime.of(23, 59, 59);
+            // ===== 좌석형(SEAT): 요청된 시간 범위 직접 저장 =====
+            if (group.getCategory() == ServiceCategory.SEAT) {
+                if (dto.getTimeSlots() != null) {
+                    for (TimeSlotDto.TimeSlotRequest slotDto : dto.getTimeSlots()) {
+                        if (slotDto.getDays() != null) {
+                            for (DayOfWeek day : slotDto.getDays()) {
+                                ResourceTimeSlots slot = ResourceTimeSlots.builder()
+                                        .resources(resource)
+                                        .dayOfWeek(day)
+                                        .startTime(slotDto.getStartTime())
+                                        .endTime(slotDto.getEndTime())
+                                        .isActive(true)
+                                        .build();
+                                resource.addTimeSlot(slot);
+                            }
+                        }
                     }
+                }
+            }
+            // ===== 예약형(RESERVATION): 기존 interval 기반 슬롯 생성 =====
+            else {
+                int intervalMinutes = dto.getTimeInterval();
+                int slotsPerDay = (24 * 60) / intervalMinutes;
 
-                    boolean active = false;
+                for (DayOfWeek day : DayOfWeek.values()) {
+                    for (int i = 0; i < slotsPerDay; i++) {
+                        LocalTime slotStart = LocalTime.of(0, 0).plusMinutes((long) i * intervalMinutes);
+                        LocalTime slotEnd = slotStart.plusMinutes(intervalMinutes);
 
-                    if (dto.getTimeSlots() != null) {
-                        for (TimeSlotDto.TimeSlotRequest slotDto : dto.getTimeSlots()) {
-                            if (slotDto.getDays() != null) {
-                                for (DayOfWeek dayEnum : slotDto.getDays()) { // 이미 Enum
-                                    if (dayEnum == day) { // Enum 비교
-                                        LocalTime targetStart = slotDto.getStartTime();
-                                        LocalTime targetEnd = slotDto.getEndTime();
+                        if (slotEnd.equals(LocalTime.MIDNIGHT)) {
+                            slotEnd = LocalTime.of(23, 59, 59);
+                        }
 
-                                        if ((slotStart.equals(targetStart) || slotStart.isAfter(targetStart))
-                                                && slotStart.isBefore(targetEnd)) {
-                                            active = true;
-                                            break;
+                        boolean active = false;
+
+                        if (dto.getTimeSlots() != null) {
+                            for (TimeSlotDto.TimeSlotRequest slotDto : dto.getTimeSlots()) {
+                                if (slotDto.getDays() != null) {
+                                    for (DayOfWeek dayEnum : slotDto.getDays()) {
+                                        if (dayEnum == day) {
+                                            LocalTime targetStart = slotDto.getStartTime();
+                                            LocalTime targetEnd = slotDto.getEndTime();
+
+                                            if ((slotStart.equals(targetStart) || slotStart.isAfter(targetStart))
+                                                    && slotStart.isBefore(targetEnd)) {
+                                                active = true;
+                                                break;
+                                            }
                                         }
                                     }
                                 }
+                                if (active) break;
                             }
-                            if (active) break;
                         }
+
+                        ResourceTimeSlots slot = ResourceTimeSlots.builder()
+                                .resources(resource)
+                                .dayOfWeek(day)
+                                .startTime(slotStart)
+                                .endTime(slotEnd)
+                                .isActive(active)
+                                .build();
+
+                        resource.addTimeSlot(slot);
                     }
-
-
-                    ResourceTimeSlots slot = ResourceTimeSlots.builder()
-                            .resources(resource)
-                            .dayOfWeek(day)
-                            .startTime(slotStart)
-                            .endTime(slotEnd)
-                            .isActive(active)
-                            .build();
-
-                    resource.addTimeSlot(slot);
                 }
             }
         }
@@ -170,26 +192,53 @@ public class ResourceService {
         resource.update(dto, user);
 
         // 정규 시간 슬롯 업데이트
-        List<ResourceTimeSlots> allSlots = resourceTimeSlotRepository.findByResources_Id(resourceId);
-
+        ServiceCategory category = resource.getResourceGroup().getCategory();
         List<TimeSlotDto.TimeSlotRequest> dtoSlots = dto.getTimeSlots();
 
-        for (ResourceTimeSlots slot : allSlots) {
-            boolean active = false;
+        // ===== 좌석형(SEAT): 기존 슬롯 삭제 후 새로 생성 =====
+        if (category == ServiceCategory.SEAT) {
+            // 기존 슬롯 소프트 삭제
+            List<ResourceTimeSlots> existingSlots = resourceTimeSlotRepository.findByResources_Id(resourceId);
+            existingSlots.forEach(ResourceTimeSlots::softDelete);
 
+            // 새로운 슬롯 생성
             if (dtoSlots != null && !dtoSlots.isEmpty()) {
-                for (TimeSlotDto.TimeSlotRequest ts : dtoSlots) {
-                    if (ts.getDays().contains(slot.getDayOfWeek())) {
-                        // DTO 범위 안에 slot이 들어있으면 활성화
-                        if (!slot.getStartTime().isBefore(ts.getStartTime()) && !slot.getEndTime().isAfter(ts.getEndTime())) {
-                            active = true;
-                            break;
+                for (TimeSlotDto.TimeSlotRequest slotDto : dtoSlots) {
+                    if (slotDto.getDays() != null) {
+                        for (DayOfWeek day : slotDto.getDays()) {
+                            ResourceTimeSlots slot = ResourceTimeSlots.builder()
+                                    .resources(resource)
+                                    .dayOfWeek(day)
+                                    .startTime(slotDto.getStartTime())
+                                    .endTime(slotDto.getEndTime())
+                                    .isActive(true)
+                                    .build();
+                            resourceTimeSlotRepository.save(slot);
                         }
                     }
                 }
             }
+        }
+        // ===== 예약형(RESERVATION): 기존 interval 기반 매칭 =====
+        else {
+            List<ResourceTimeSlots> allSlots = resourceTimeSlotRepository.findByResources_Id(resourceId);
 
-            slot.setIsActive(active);
+            for (ResourceTimeSlots slot : allSlots) {
+                boolean active = false;
+
+                if (dtoSlots != null && !dtoSlots.isEmpty()) {
+                    for (TimeSlotDto.TimeSlotRequest ts : dtoSlots) {
+                        if (ts.getDays().contains(slot.getDayOfWeek())) {
+                            if (!slot.getStartTime().isBefore(ts.getStartTime()) && !slot.getEndTime().isAfter(ts.getEndTime())) {
+                                active = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                slot.setIsActive(active);
+            }
         }
 
 
