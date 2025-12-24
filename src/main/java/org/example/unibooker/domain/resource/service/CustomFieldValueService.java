@@ -3,10 +3,7 @@ package org.example.unibooker.domain.resource.service;
 import lombok.RequiredArgsConstructor;
 import org.example.unibooker.domain.reservation.repository.ReservationRepository;
 import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
-import org.example.unibooker.domain.resource.model.entity.CustomFieldDefinitions;
-import org.example.unibooker.domain.resource.model.entity.CustomTargetType;
-import org.example.unibooker.domain.resource.model.entity.ResourceCustomFieldValues;
-import org.example.unibooker.domain.resource.model.entity.UserCustomFieldValues;
+import org.example.unibooker.domain.resource.model.entity.*;
 import org.example.unibooker.domain.resource.repository.CustomFieldDefinitionRepository;
 import org.example.unibooker.domain.resource.repository.ResourceCustomFieldValueRepository;
 import org.example.unibooker.domain.resource.repository.ResourceRepository;
@@ -108,10 +105,23 @@ public class CustomFieldValueService {
                     .map(convertBooleanValue)
                     .collect(Collectors.toList());
 
+            // RADIO/CHECKBOX 옵션 조회
+            List<String> options = null;
+            if (field.getCustomFieldSelectDefinitions() != null
+                    && !field.getCustomFieldSelectDefinitions().isEmpty()) {
+                options = field.getCustomFieldSelectDefinitions().stream()
+                        .map(CustomFieldSelectDefinitions::getName)
+                        .collect(Collectors.toList());
+            }
+
             result.add(CustomFieldDto.CustomFieldValueListRes.builder()
                     .customFieldId(field.getId())
                     .fieldName(field.getFieldName())
                     .values(convertedValues)
+                    .dataType(field.getDataType().name())
+                    .required(field.getIsRequired())
+                    .description(field.getDescription())
+                    .options(options)
                     .build());
         }
 

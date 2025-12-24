@@ -11,6 +11,7 @@ import org.example.unibooker.domain.resource.model.entity.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Schema(description = "커스텀 필드 관련 DTO 클래스들")
 public class CustomFieldDto {
@@ -86,13 +87,23 @@ public class CustomFieldDto {
         private List<String> options;
 
         public static CustomFieldRes fromEntity(CustomFieldDefinitions entity) {
+            // RADIO/CHECKBOX 옵션 조회
+            List<String> options = null;
+            if (entity.getCustomFieldSelectDefinitions() != null
+                    && !entity.getCustomFieldSelectDefinitions().isEmpty()) {
+                options = entity.getCustomFieldSelectDefinitions().stream()
+                        .map(CustomFieldSelectDefinitions::getName)
+                        .collect(Collectors.toList());
+            }
+
             return CustomFieldRes.builder()
                     .id(entity.getId())
                     .fieldName(entity.getFieldName())
-                    .dataType(entity.getDataType().name()) // ENUM → 문자열
-                    .targetType(entity.getTargetType().name()) // ENUM → 문자열
+                    .dataType(entity.getDataType().name())
+                    .targetType(entity.getTargetType().name())
                     .required(entity.getIsRequired())
                     .description(entity.getDescription())
+                    .options(options)
                     .build();
         }
     }
@@ -152,6 +163,18 @@ public class CustomFieldDto {
         @Schema(description = "값 목록", example = "[\"101호 회의실\"]")
         private List<String> values;
 
+        @Schema(description = "데이터 타입", example = "TEXT")
+        private String dataType;
+
+        @Schema(description = "필수 여부", example = "true")
+        private Boolean required;
+
+        @Schema(description = "설명", example = "회의실 이름을 입력하세요")
+        private String description;
+
+        @Schema(description = "선택형 옵션 목록 (RADIO/CHECKBOX)", nullable = true)
+        private List<String> options;
+
         private static String convertBooleanValue(String value) {
             if ("true".equalsIgnoreCase(value)) return "예";
             if ("false".equalsIgnoreCase(value)) return "아니오";
@@ -159,18 +182,48 @@ public class CustomFieldDto {
         }
 
         public static CustomFieldValueListRes fromUserEntity(UserCustomFieldValues entity) {
+            CustomFieldDefinitions field = entity.getCustomFieldDefinition();
+
+            // RADIO/CHECKBOX 옵션 조회
+            List<String> options = null;
+            if (field.getCustomFieldSelectDefinitions() != null
+                    && !field.getCustomFieldSelectDefinitions().isEmpty()) {
+                options = field.getCustomFieldSelectDefinitions().stream()
+                        .map(CustomFieldSelectDefinitions::getName)
+                        .collect(Collectors.toList());
+            }
+
             return CustomFieldValueListRes.builder()
-                    .customFieldId(entity.getCustomFieldDefinition().getId())
-                    .fieldName(entity.getCustomFieldDefinition().getFieldName())
+                    .customFieldId(field.getId())
+                    .fieldName(field.getFieldName())
                     .values(List.of(convertBooleanValue(entity.getFieldValue())))
+                    .dataType(field.getDataType().name())
+                    .required(field.getIsRequired())
+                    .description(field.getDescription())
+                    .options(options)
                     .build();
         }
 
         public static CustomFieldValueListRes fromResourceEntity(ResourceCustomFieldValues entity) {
+            CustomFieldDefinitions field = entity.getCustomFieldDefinition();
+
+            // RADIO/CHECKBOX 옵션 조회
+            List<String> options = null;
+            if (field.getCustomFieldSelectDefinitions() != null
+                    && !field.getCustomFieldSelectDefinitions().isEmpty()) {
+                options = field.getCustomFieldSelectDefinitions().stream()
+                        .map(CustomFieldSelectDefinitions::getName)
+                        .collect(Collectors.toList());
+            }
+
             return CustomFieldValueListRes.builder()
-                    .customFieldId(entity.getCustomFieldDefinition().getId())
-                    .fieldName(entity.getCustomFieldDefinition().getFieldName())
+                    .customFieldId(field.getId())
+                    .fieldName(field.getFieldName())
                     .values(List.of(convertBooleanValue(entity.getFieldValue())))
+                    .dataType(field.getDataType().name())
+                    .required(field.getIsRequired())
+                    .description(field.getDescription())
+                    .options(options)
                     .build();
         }
     }
