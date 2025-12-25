@@ -26,6 +26,20 @@ public enum NotificationType {
             "예약이 취소되었습니다."
     ),
 
+    RESERVATION_CANCELLED_BY_ADMIN(
+            "[%s] 예약 취소 안내",
+            "Reservation Cancelled by Admin",
+            "USER",
+            "관리자에 의해 예약이 취소되었습니다."
+    ),
+
+    RESERVATION_MODIFIED_BY_ADMIN(
+            "[%s] 예약 변경 안내",
+            "Reservation Modified by Admin",
+            "USER",
+            "관리자에 의해 예약이 변경되었습니다."
+    ),
+
     RESERVATION_REMINDER_1H(
             "[%s] 예약 1시간 전",
             "Reservation Reminder 1H",
