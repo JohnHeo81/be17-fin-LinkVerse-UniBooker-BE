@@ -324,6 +324,19 @@ public class ReservationService {
         }
     }
 
+    /**
+     * 리소스 수정 시 영향받는 예약 건수 조회
+     * - 해당 리소스의 확정된 예약 건수 반환
+     */
+    public ReservationDto.CountAffectedResponse countAffectedReservations(Long resourceId) {
+        // 리소스 존재 여부 체크
+        resourceRepository.findByIdAndDeletedAtIsNull(resourceId)
+                .orElseThrow(() -> new BaseException(BaseResponseStatus.RESOURCE_NOT_FOUND));
+
+        long count = reservationRepository.countConfirmedByResourceId(resourceId);
+        return ReservationDto.CountAffectedResponse.of(count);
+    }
+
     // TODO : 리소스도 마감된 것 상태 변경 > 리소스 서비스 클래스에 구현
     public void resourceStatusUpdate(Long resourceId) {
         // 리소스 존재 여부 체크

@@ -70,6 +70,15 @@ public class ReservationController {
         return ResponseEntity.ok(BaseResponse.success(reservationService.getUserReservations(authUser.getId())));
     }
 
+    // ===================
+    // 리소스 수정 시 영향받는 예약 건수 조회
+    // ===================
+    @Operation(summary = "영향받는 예약 건수 조회", description = "리소스 수정 시 영향받는 확정 예약 건수를 조회합니다.")
+    @GetMapping("/count-affected/{resourceId}")
+    public ResponseEntity<BaseResponse<ReservationDto.CountAffectedResponse>> countAffectedReservations(
+            @PathVariable Long resourceId) {
+        return ResponseEntity.ok(BaseResponse.success(reservationService.countAffectedReservations(resourceId)));
+    }
 
     // ===================
     // 예약 상세 조회

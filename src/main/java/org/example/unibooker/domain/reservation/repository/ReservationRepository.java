@@ -157,4 +157,14 @@ public interface ReservationRepository extends JpaRepository<Reservations, Long>
       AND r.deletedAt IS NULL
 """)
     List<Reservations> findReminderTargets(LocalDateTime from, LocalDateTime to);
+
+    /** 리소스의 확정된 예약 건수 조회 (리소스 수정 시 영향 체크용) */
+    @Query("""
+        SELECT COUNT(r)
+        FROM Reservations r
+        WHERE r.resources.id = :resourceId
+          AND r.status = 'CONFIRMED'
+          AND r.deletedAt IS NULL
+    """)
+    long countConfirmedByResourceId(Long resourceId);
 }

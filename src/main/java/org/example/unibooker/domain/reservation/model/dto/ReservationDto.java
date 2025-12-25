@@ -403,4 +403,24 @@ public class ReservationDto {
                     .build();
         }
     }
+
+    // ===================
+    // 영향받는 예약 건수 조회 DTO
+    // ===================
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "영향받는 예약 건수 응답")
+    public static class CountAffectedResponse {
+
+        @Schema(description = "영향받는 예약 건수", example = "253")
+        private long count;
+
+        public static CountAffectedResponse of(long count) {
+            return CountAffectedResponse.builder()
+                    .count(count)
+                    .build();
+        }
+    }
 }
