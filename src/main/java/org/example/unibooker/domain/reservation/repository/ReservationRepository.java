@@ -4,6 +4,7 @@ import jakarta.persistence.LockModeType;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDateTime;
@@ -167,4 +168,44 @@ public interface ReservationRepository extends JpaRepository<Reservations, Long>
           AND r.deletedAt IS NULL
     """)
     long countConfirmedByResourceId(Long resourceId);
+
+    // ========== 리소스 수정 시 예약 일괄 처리용 ==========
+
+    /** 리소스의 확정된 예약 목록 조회 (알림/메일 발송용) */
+    @Query("""
+        SELECT r
+        FROM Reservations r
+        JOIN FETCH r.users
+        JOIN FETCH r.resources res
+        JOIN FETCH res.resourceGroup
+        WHERE r.resources.id = :resourceId
+          AND r.status = 'CONFIRMED'
+          AND r.deletedAt IS NULL
+    """)
+    List<Reservations> findConfirmedByResourceId(Long resourceId);
+
+    /** 리소스의 확정된 예약 일괄 취소 (벌크 UPDATE) */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE Reservations r
+        SET r.status = 'CANCELLED',
+            r.deletedAt = CURRENT_TIMESTAMP
+        WHERE r.resources.id = :resourceId
+          AND r.status = 'CONFIRMED'
+          AND r.deletedAt IS NULL
+    """)
+    int bulkCancelByResourceId(Long resourceId);
+
+    /** 리소스의 확정된 예약 시간 일괄 수정 (벌크 UPDATE) */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+        UPDATE Reservations r
+        SET r.startDate = :newStartTime,
+            r.endDate = :newEndTime,
+            r.updatedAt = CURRENT_TIMESTAMP
+        WHERE r.resources.id = :resourceId
+          AND r.status = 'CONFIRMED'
+          AND r.deletedAt IS NULL
+    """)
+    int bulkUpdateTimeByResourceId(Long resourceId, LocalDateTime newStartTime, LocalDateTime newEndTime);
 }
