@@ -127,4 +127,18 @@ public class EmailServiceImpl implements EmailService {
         String htmlContent = emailTemplateService.renderReservationReminderTemplate(name, resourceName, dateTime, reminderType);
         sendHtmlEmail(to, subject, htmlContent);
     }
+
+    @Override
+    public void sendReservationCancelledByAdminEmail(String to, String name, String resourceName, String reservationInfo) {
+        String subject = "[UniBooker] 예약 취소 안내";
+        String htmlContent = emailTemplateService.renderReservationCancelledByAdminTemplate(name, resourceName, reservationInfo);
+        sendHtmlEmail(to, subject, htmlContent);
+    }
+
+    @Override
+    public void sendReservationModifiedByAdminEmail(String to, String name, String resourceName, String reservationInfo) {
+        String subject = "[UniBooker] 예약 변경 안내";
+        String htmlContent = emailTemplateService.renderReservationModifiedByAdminTemplate(name, resourceName, reservationInfo);
+        sendHtmlEmail(to, subject, htmlContent);
+    }
 }

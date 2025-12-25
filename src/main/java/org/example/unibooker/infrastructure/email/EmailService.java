@@ -107,4 +107,24 @@ public interface EmailService {
      * @param reminderType 리마인더 타입 ("1H" / "24H")
      */
     void sendReservationReminderEmail(String to, String name, String resourceName, String dateTime, String reminderType);
+
+    /**
+     * 예약 취소 안내 이메일 발송 (관리자에 의한 취소)
+     *
+     * @param to 수신자 이메일
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param reservationInfo 예약 정보 (포맷팅된 문자열)
+     */
+    void sendReservationCancelledByAdminEmail(String to, String name, String resourceName, String reservationInfo);
+
+    /**
+     * 예약 변경 안내 이메일 발송 (관리자에 의한 변경)
+     *
+     * @param to 수신자 이메일
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param reservationInfo 예약 정보 (포맷팅된 문자열)
+     */
+    void sendReservationModifiedByAdminEmail(String to, String name, String resourceName, String reservationInfo);
 }

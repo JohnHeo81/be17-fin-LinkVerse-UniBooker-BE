@@ -96,4 +96,24 @@ public interface EmailTemplateService {
      * @return 렌더링된 HTML 문자열
      */
     String renderReservationReminderTemplate(String name, String resourceName, String dateTime, String reminderType);
+
+    /**
+     * 예약 취소 안내 이메일 템플릿 렌더링 (관리자에 의한 취소)
+     *
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param reservationInfo 예약 정보 (포맷팅된 문자열)
+     * @return 렌더링된 HTML 문자열
+     */
+    String renderReservationCancelledByAdminTemplate(String name, String resourceName, String reservationInfo);
+
+    /**
+     * 예약 변경 안내 이메일 템플릿 렌더링 (관리자에 의한 변경)
+     *
+     * @param name 사용자 이름
+     * @param resourceName 리소스명
+     * @param reservationInfo 예약 정보 (포맷팅된 문자열)
+     * @return 렌더링된 HTML 문자열
+     */
+    String renderReservationModifiedByAdminTemplate(String name, String resourceName, String reservationInfo);
 }

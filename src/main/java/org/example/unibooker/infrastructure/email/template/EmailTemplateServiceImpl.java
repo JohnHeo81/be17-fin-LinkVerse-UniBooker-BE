@@ -132,4 +132,24 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
 
         return renderTemplate("email/ReservationReminder", variables);
     }
+
+    @Override
+    public String renderReservationCancelledByAdminTemplate(String name, String resourceName, String reservationInfo) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("resourceName", resourceName);
+        variables.put("reservationInfo", reservationInfo);
+
+        return renderTemplate("email/ReservationCancelledByAdmin", variables);
+    }
+
+    @Override
+    public String renderReservationModifiedByAdminTemplate(String name, String resourceName, String reservationInfo) {
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", name);
+        variables.put("resourceName", resourceName);
+        variables.put("reservationInfo", reservationInfo);
+
+        return renderTemplate("email/ReservationModifiedByAdmin", variables);
+    }
 }
