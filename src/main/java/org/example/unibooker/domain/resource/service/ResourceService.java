@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
 import org.example.unibooker.domain.notification.service.NotificationBatchService;
-import org.example.unibooker.domain.notification.service.NotificationService;
 import org.example.unibooker.domain.reservation.model.ReservationAction;
 import org.example.unibooker.domain.reservation.model.entity.Reservations;
 import org.example.unibooker.domain.reservation.service.ReservationBatchService;
@@ -38,7 +37,6 @@ public class ResourceService {
     private final ResourceCustomFieldValueRepository resourceCustomFieldValueRepository;
     private final ResourceTimeSlotRepository resourceTimeSlotRepository;
     private final ResourceTimeSlotExceptionRepository resourceTimeSlotExceptionRepository;
-    private final NotificationService notificationService;
     private final ReservationBatchService reservationBatchService;
     private final NotificationBatchService notificationBatchService;
     private final AsyncEmailService asyncEmailService;
