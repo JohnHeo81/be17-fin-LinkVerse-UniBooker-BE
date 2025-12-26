@@ -270,6 +270,9 @@ public class ResourceDto {
 
         @Schema(description = "예외 타임슬롯 목록", nullable = true)
         private List<TimeSlotDto.ExceptionSlotRequest> exceptionSlots;
+
+        @Schema(description = "예약 처리 액션 (CANCEL: 취소, MODIFY: 수정)", example = "CANCEL", nullable = true)
+        private String reservationAction;
     }
 
     @Getter

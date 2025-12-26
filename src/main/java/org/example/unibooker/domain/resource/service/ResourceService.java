@@ -5,7 +5,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.unibooker.common.BaseResponseStatus;
 import org.example.unibooker.common.exception.BaseException;
+import org.example.unibooker.domain.notification.service.NotificationBatchService;
 import org.example.unibooker.domain.notification.service.NotificationService;
+import org.example.unibooker.domain.reservation.model.ReservationAction;
+import org.example.unibooker.domain.reservation.model.entity.Reservations;
+import org.example.unibooker.domain.reservation.service.ReservationBatchService;
 import org.example.unibooker.domain.resource.model.dto.CustomFieldDto;
 import org.example.unibooker.domain.resource.model.dto.ResourceDto;
 import org.example.unibooker.domain.resource.model.dto.TimeSlotDto;
@@ -14,6 +18,7 @@ import org.example.unibooker.domain.resource.repository.*;
 import org.example.unibooker.domain.user.model.dto.AuthDto;
 import org.example.unibooker.domain.user.model.entity.Users;
 import org.example.unibooker.domain.user.repository.UserRepository;
+import org.example.unibooker.infrastructure.email.AsyncEmailService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +39,9 @@ public class ResourceService {
     private final ResourceTimeSlotRepository resourceTimeSlotRepository;
     private final ResourceTimeSlotExceptionRepository resourceTimeSlotExceptionRepository;
     private final NotificationService notificationService;
+    private final ReservationBatchService reservationBatchService;
+    private final NotificationBatchService notificationBatchService;
+    private final AsyncEmailService asyncEmailService;
 
 
     // -------------------- 리소스 등록 --------------------
@@ -188,10 +196,33 @@ public class ResourceService {
         Users user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("해당 사용자가 존재하지 않습니다."));
 
-        // 리소스 기본 정보 업데이트
+        // ========== 예약 처리 (취소/수정) ==========
+        List<Reservations> affectedReservations = List.of();
+
+        if (dto.getReservationAction() != null) {
+            ReservationAction action = ReservationAction.valueOf(dto.getReservationAction());
+
+            // 알림/메일용 예약자 정보 조회 (벌크 UPDATE 전에 조회)
+            affectedReservations = reservationBatchService.getConfirmedReservations(resourceId);
+
+            if (!affectedReservations.isEmpty()) {
+                if (action == ReservationAction.CANCEL) {
+                    // 예약 일괄 취소
+                    reservationBatchService.cancelReservations(resourceId);
+                    log.info("[ResourceUpdate] 예약 일괄 취소 완료 - resourceId: {}", resourceId);
+
+                } else if (action == ReservationAction.MODIFY) {
+                    // 예약 시간 일괄 수정 (TimeSlot 변경 시)
+                    // 현재는 시간 변경 로직 간소화 - 추후 확장 가능
+                    log.info("[ResourceUpdate] 예약 수정 처리 - resourceId: {}", resourceId);
+                }
+            }
+        }
+
+        // ========== 리소스 기본 정보 업데이트 ==========
         resource.update(dto, user);
 
-        // 정규 시간 슬롯 업데이트
+        // ========== 정규 시간 슬롯 업데이트 ==========
         ServiceCategory category = resource.getResourceGroup().getCategory();
         List<TimeSlotDto.TimeSlotRequest> dtoSlots = dto.getTimeSlots();
 
@@ -220,7 +251,7 @@ public class ResourceService {
             }
         }
         // ===== 예약형(RESERVATION): 기존 interval 기반 매칭 =====
-        else {
+        else if (category == ServiceCategory.RESERVATION) {
             List<ResourceTimeSlots> allSlots = resourceTimeSlotRepository.findByResources_Id(resourceId);
 
             for (ResourceTimeSlots slot : allSlots) {
@@ -241,9 +272,7 @@ public class ResourceService {
             }
         }
 
-
-
-        // 예외 시간 슬롯 업데이트
+        // ========== 예외 시간 슬롯 업데이트 ==========
         if (dto.getExceptionSlots() != null && !dto.getExceptionSlots().isEmpty()) {
             // 기존 예외 슬롯 소프트 삭제
             List<ResourceTimeSlotExceptions> existingExceptions =
@@ -269,6 +298,18 @@ public class ResourceService {
             existingExceptions.forEach(ResourceTimeSlotExceptions::softDelete);
         }
 
+        // ========== 알림/메일 발송 (비동기) ==========
+        if (!affectedReservations.isEmpty() && dto.getReservationAction() != null) {
+            ReservationAction action = ReservationAction.valueOf(dto.getReservationAction());
+
+            if (action == ReservationAction.CANCEL) {
+                notificationBatchService.sendCancellationNotifications(affectedReservations);
+                asyncEmailService.sendCancellationEmails(affectedReservations);
+            } else if (action == ReservationAction.MODIFY) {
+                notificationBatchService.sendModificationNotifications(affectedReservations);
+                asyncEmailService.sendModificationEmails(affectedReservations);
+            }
+        }
     }
 
 
